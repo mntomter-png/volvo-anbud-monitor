@@ -1,6 +1,5 @@
 [build]
   command = "npm run build"
-  publish = ".next"
 
 # Offisiell Next.js runtime for Netlify (App Router + route handlers).
 [[plugins]]
