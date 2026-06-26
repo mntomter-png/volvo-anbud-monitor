@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Offisiell Next.js runtime for Netlify (App Router + route handlers).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Schedulert funksjon (netlify/functions/daily-notifications.mjs) trigger
+# den daglige jobben. Tidspunkt styres via `export const config` i funksjonen.
+[functions]
+  node_bundler = "esbuild"

@@ -1,0 +1,11 @@
+# Lokale miljøvariabler for `wrangler dev` / `npm run preview`.
+# Kopier til .dev.vars og fyll inn verdier (samme som .env.local).
+NEXTJS_ENV=development
+
+# DOFFIN_API_KEY=
+# RESEND_API_KEY=
+# NOTIFICATION_EMAIL=
+# NEXT_PUBLIC_SUPABASE_URL=
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# SUPABASE_SERVICE_ROLE_KEY=
+# CRON_SECRET=
