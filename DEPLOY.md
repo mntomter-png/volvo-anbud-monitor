@@ -23,6 +23,8 @@ Under **Site configuration → Environment variables**, legg inn:
 | `NOTIFICATION_EMAIL` | `anbud@biloversikt.com` |
 | `NOTIFICATION_FROM` | `Volvo Anbud-monitor <anbud@biloversikt.com>` |
 | `CRON_SECRET` | *(sterkt tilfeldig token – se `.env.local`)* |
+| `BASIC_AUTH_USER` | *(valgfri – brukernavn for kollegaer, f.eks. `volvo`)* |
+| `BASIC_AUTH_PASSWORD` | *(valgfri – felles passord for å åpne dashboardet)* |
 
 ### 3. Deploy
 
@@ -40,6 +42,18 @@ Verifiser under **Functions** i Netlify-dashboardet etter første deploy.
 curl -X POST https://<din-netlify-url>/api/notifications \
   -H "Authorization: Bearer <CRON_SECRET>"
 ```
+
+### 6. Del med kollegaer
+
+1. Sett `BASIC_AUTH_USER` og `BASIC_AUTH_PASSWORD` i Netlify (se tabellen over).
+2. Deploy på nytt etter at variablene er satt.
+3. Send kollegaer:
+   - **Lenke:** `https://anbudvt.netlify.app/dashboard`
+   - **Brukernavn** og **passord** (samme for alle – nettleseren husker innloggingen)
+
+Uten Basic Auth er dashboardet åpent for alle som har lenken. Cron-jobb og `/api/notifications` er fortsatt beskyttet med `CRON_SECRET`.
+
+Knappen **«Hent nye anbud nå»** kaller `/api/sync` (ikke cron-endepunktet).
 
 ---
 

@@ -169,7 +169,7 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
     setRefreshing(true);
     setBanner(null);
     try {
-      const res = await fetch("/api/notifications", { method: "POST" });
+      const res = await fetch("/api/sync", { method: "POST" });
       const json = (await res.json()) as NotificationResult;
       if (!res.ok || !json.ok) {
         throw new Error(json.error ?? json.details ?? `Feil ${res.status}`);
