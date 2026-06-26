@@ -43,8 +43,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^15.5.19",
-    "netlify-cli": "^26.1.0",
-    "supabase": "^2.108.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.105.0"

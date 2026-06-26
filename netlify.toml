@@ -1,6 +1,9 @@
 [build]
   command = "npm run build"
 
+[build.environment]
+  NODE_VERSION = "20"
+
 # Offisiell Next.js runtime for Netlify (App Router + route handlers).
 [[plugins]]
   package = "@netlify/plugin-nextjs"
