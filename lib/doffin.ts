@@ -1,7 +1,7 @@
 /**
  * Klient mot Doffin Public API v2.
  *
- * Base-URL:  https://betaapi.doffin.no/public/v2
+ * Base-URL:  https://api.doffin.no/public/v2
  * Auth:      header «Ocp-Apim-Subscription-Key: <DOFFIN_API_KEY>»
  *
  * Hovedfunksjoner:
@@ -18,7 +18,7 @@ import type {
 } from "@/lib/types";
 import { detectRegion } from "@/lib/keywords";
 
-const DEFAULT_BASE_URL = "https://betaapi.doffin.no/public/v2";
+const DEFAULT_BASE_URL = "https://api.doffin.no/public/v2";
 
 /** Enkel, strukturert feiltype for API-kall mot Doffin. */
 export class DoffinApiError extends Error {
@@ -139,7 +139,8 @@ export class DoffinClient {
     const query: Record<string, unknown> = {
       searchString: params.searchString,
       numHitsPerPage: params.numHitsPerPage ?? 50,
-      page: params.page ?? 0,
+      // Doffin produksjons-API er 1-indeksert (page må være >= 1).
+      page: params.page ?? 1,
       sortBy: params.sortBy ?? "PUBLICATION_DATE_DESC",
       type: params.type,
       status: params.status,

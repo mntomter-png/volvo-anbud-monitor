@@ -44,6 +44,9 @@ next-env.d.ts
 # OpenNext
 .open-next
 
+# Supabase lokale link-filer (genereres av CLI)
+supabase/.temp/
+
 # wrangler files
 .wrangler
 .dev.vars*

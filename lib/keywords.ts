@@ -204,13 +204,48 @@ export const REGIONS: RegionConfig[] = [
 export const REGION_NAMES = REGIONS.map((r) => r.name);
 export type RegionName = (typeof REGION_NAMES)[number];
 
+/** Escaper spesialtegn slik at en streng kan brukes trygt i et regex. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Heilords-matching: `needle` må stå som et eget ord i `haystack`. Bruker
+ * unicode-ordgrenser slik at f.eks. «ski» IKKE matcher inne i «maskin» og
+ * «ås» ikke matcher inne i andre ord. Brukes til region-deteksjon der
+ * stedsnavn skal være presise.
+ */
+function matchesWholeWord(haystack: string, needle: string): boolean {
+  const re = new RegExp(
+    `(?<![\\p{L}\\p{N}])${escapeRegExp(needle)}(?![\\p{L}\\p{N}])`,
+    "u",
+  );
+  return re.test(haystack);
+}
+
+/**
+ * Stamme-/prefiksmatching: `needle` må starte et ord i `haystack`, men kan
+ * etterfølges av bøyningsendelser. Slik matcher «lastebil» også «lastebilen»
+ * og «lastebiler», mens «ski» fortsatt ikke matcher «maskin» (ulik ordstart).
+ * Brukes til Volvo-relevans der norske bøyninger er vanlige.
+ */
+function matchesWordPrefix(haystack: string, needle: string): boolean {
+  const re = new RegExp(
+    `(?<![\\p{L}\\p{N}])${escapeRegExp(needle)}`,
+    "u",
+  );
+  return re.test(haystack);
+}
+
 /**
  * Avgjør om en gitt tekst er relevant for Volvo basert på nøkkelordene.
  * Returnerer hvilke nøkkelord som traff (tom liste = ikke relevant).
  */
 export function matchVolvoKeywords(text: string): string[] {
   const haystack = text.toLowerCase();
-  return VOLVO_KEYWORDS.filter((kw) => haystack.includes(kw.toLowerCase()));
+  return VOLVO_KEYWORDS.filter((kw) =>
+    matchesWordPrefix(haystack, kw.toLowerCase()),
+  );
 }
 
 /**
@@ -218,9 +253,13 @@ export function matchVolvoKeywords(text: string): string[] {
  * beskrivelse) hører til. Returnerer regionnavnet eller null hvis ingen treff.
  */
 export function detectRegion(text: string): RegionName | null {
-  const haystack = ` ${text.toLowerCase()} `;
+  const haystack = text.toLowerCase();
   for (const region of REGIONS) {
-    if (region.matchers.some((m) => haystack.includes(m.toLowerCase()))) {
+    if (
+      region.matchers.some((m) =>
+        matchesWholeWord(haystack, m.toLowerCase().trim()),
+      )
+    ) {
       return region.name;
     }
   }
