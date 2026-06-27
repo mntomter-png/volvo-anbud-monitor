@@ -229,7 +229,7 @@ function matchesWholeWord(haystack: string, needle: string): boolean {
  * og «lastebiler», mens «ski» fortsatt ikke matcher «maskin» (ulik ordstart).
  * Brukes til Volvo-relevans der norske bøyninger er vanlige.
  */
-function matchesWordPrefix(haystack: string, needle: string): boolean {
+export function matchesWordPrefix(haystack: string, needle: string): boolean {
   const re = new RegExp(
     `(?<![\\p{L}\\p{N}])${escapeRegExp(needle)}`,
     "u",

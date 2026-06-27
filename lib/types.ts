@@ -5,6 +5,8 @@
  *  - Typer som speiler Doffin Public API v2
  */
 
+import type { PipelineStatus, TenderType } from "@/lib/pipeline";
+
 /** JSON-kompatibel verdi (for `raw_data`-kolonnen). */
 export type Json =
   | string
@@ -30,6 +32,10 @@ export type TenderRow = {
   estimated_value: number | null;
   url: string | null;
   raw_data: Json;
+  tender_type: TenderType;
+  is_electric: boolean;
+  pipeline_status: PipelineStatus;
+  assignee: string | null;
   created_at: string;
 }
 
@@ -44,6 +50,16 @@ export type TenderInsert = {
   estimated_value?: number | null;
   url?: string | null;
   raw_data?: Json;
+  tender_type?: TenderType;
+  is_electric?: boolean;
+  pipeline_status?: PipelineStatus;
+  assignee?: string | null;
+}
+
+/** Felt som kan oppdateres fra dashboardet (pipeline-arbeidsflyt). */
+export type TenderPipelineUpdate = {
+  pipeline_status?: PipelineStatus;
+  assignee?: string | null;
 }
 
 /**
@@ -56,7 +72,7 @@ export type Database = {
       tenders: {
         Row: TenderRow;
         Insert: TenderInsert;
-        Update: Partial<TenderInsert>;
+        Update: Partial<TenderInsert> & TenderPipelineUpdate;
         Relationships: [];
       };
     };

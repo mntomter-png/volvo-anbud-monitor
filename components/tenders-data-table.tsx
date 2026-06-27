@@ -23,11 +23,18 @@ import {
 
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatDate, daysUntil } from "@/lib/format";
+import {
+  PIPELINE_STATUSES,
+  PIPELINE_STATUS_LABELS,
+  TENDER_TYPES,
+  TENDER_TYPE_LABELS,
+} from "@/lib/pipeline";
 import type { TenderRow } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -37,6 +44,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RegionMultiSelect } from "@/components/region-multi-select";
+import { FilterMultiSelect } from "@/components/filter-multi-select";
+import {
+  AssigneeSelect,
+  ElectricBadge,
+  PipelineStatusSelect,
+  TenderTypeBadge,
+} from "@/components/tender-pipeline-cells";
 
 interface TendersResponse {
   data: TenderRow[];
@@ -89,14 +103,16 @@ function SortHeader({
 function DeadlineCell({ value }: { value: string | null }) {
   const days = daysUntil(value);
   return (
-    <div className="flex items-center gap-2">
-      <span>{formatDate(value)}</span>
+    <div className="flex flex-col gap-1">
+      <span className="font-medium">{formatDate(value)}</span>
       {days !== null && (
         <Badge
-          variant={days < 0 ? "destructive" : days <= 7 ? "default" : "secondary"}
-          className="text-[10px]"
+          variant={
+            days < 0 ? "destructive" : days <= 3 ? "destructive" : days <= 7 ? "default" : "secondary"
+          }
+          className="w-fit text-[10px]"
         >
-          {days < 0 ? "Utløpt" : `${days} d`}
+          {days < 0 ? "Utløpt" : days === 0 ? "I dag" : days === 1 ? "1 dag" : `${days} dager`}
         </Badge>
       )}
     </div>
@@ -112,11 +128,14 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [selectedRegions, setSelectedRegions] = React.useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+  const [electricOnly, setElectricOnly] = React.useState(false);
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
 
   const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "published_at", desc: true },
+    { id: "deadline", desc: false },
   ]);
 
   const [refreshing, setRefreshing] = React.useState(false);
@@ -131,6 +150,10 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
     return () => clearTimeout(t);
   }, [search]);
 
+  const updateRow = React.useCallback((updated: TenderRow) => {
+    setRows((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  }, []);
+
   const fetchTenders = React.useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -138,6 +161,11 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
       const params = new URLSearchParams();
       if (selectedRegions.length > 0)
         params.set("region", selectedRegions.join(","));
+      if (selectedTypes.length > 0)
+        params.set("tender_type", selectedTypes.join(","));
+      if (selectedStatuses.length > 0)
+        params.set("pipeline_status", selectedStatuses.join(","));
+      if (electricOnly) params.set("is_electric", "true");
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (from) params.set("from", from);
       if (to) params.set("to", to);
@@ -158,7 +186,7 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedRegions, debouncedSearch, from, to]);
+  }, [selectedRegions, selectedTypes, selectedStatuses, electricOnly, debouncedSearch, from, to]);
 
   React.useEffect(() => {
     void fetchTenders();
@@ -194,9 +222,30 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
   function resetFilters() {
     setSearch("");
     setSelectedRegions([]);
+    setSelectedTypes([]);
+    setSelectedStatuses([]);
+    setElectricOnly(false);
     setFrom("");
     setTo("");
   }
+
+  const typeOptions = React.useMemo(
+    () =>
+      TENDER_TYPES.map((t) => ({
+        value: t,
+        label: TENDER_TYPE_LABELS[t],
+      })),
+    [],
+  );
+
+  const statusOptions = React.useMemo(
+    () =>
+      PIPELINE_STATUSES.map((s) => ({
+        value: s,
+        label: PIPELINE_STATUS_LABELS[s],
+      })),
+    [],
+  );
 
   const columns = React.useMemo<ColumnDef<TenderRow>[]>(
     () => [
@@ -216,6 +265,41 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
             <ExternalLink className="mt-0.5 size-3.5 shrink-0 opacity-60" />
           </a>
         ),
+      },
+      {
+        accessorKey: "tender_type",
+        header: "Type",
+        cell: ({ row }) => (
+          <TenderTypeBadge type={row.original.tender_type ?? "unknown"} />
+        ),
+      },
+      {
+        accessorKey: "is_electric",
+        header: "El",
+        cell: ({ row }) => (
+          <ElectricBadge isElectric={row.original.is_electric ?? false} />
+        ),
+      },
+      {
+        accessorKey: "pipeline_status",
+        header: "Status",
+        cell: ({ row }) => (
+          <PipelineStatusSelect tender={row.original} onUpdated={updateRow} />
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "assignee",
+        header: "Ansvarlig",
+        cell: ({ row }) => (
+          <AssigneeSelect tender={row.original} onUpdated={updateRow} />
+        ),
+        enableSorting: false,
+      },
+      {
+        accessorKey: "deadline",
+        header: "Frist",
+        cell: ({ row }) => <DeadlineCell value={row.original.deadline} />,
       },
       {
         accessorKey: "buyer",
@@ -242,11 +326,6 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         cell: ({ row }) => formatDate(row.original.published_at),
       },
       {
-        accessorKey: "deadline",
-        header: "Frist",
-        cell: ({ row }) => <DeadlineCell value={row.original.deadline} />,
-      },
-      {
         accessorKey: "estimated_value",
         header: () => <div className="text-right">Estimert verdi</div>,
         cell: ({ row }) => (
@@ -256,7 +335,7 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         ),
       },
     ],
-    [],
+    [updateRow],
   );
 
   const table = useReactTable({
@@ -290,12 +369,46 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Type</Label>
+            <FilterMultiSelect
+              label="Alle typer"
+              options={typeOptions}
+              selected={selectedTypes}
+              onChange={setSelectedTypes}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Status</Label>
+            <FilterMultiSelect
+              label="Alle statuser"
+              options={statusOptions}
+              selected={selectedStatuses}
+              onChange={setSelectedStatuses}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Region</Label>
             <RegionMultiSelect
               options={regions}
               selected={selectedRegions}
               onChange={setSelectedRegions}
             />
+          </div>
+
+          <div className="flex items-end gap-2 pb-0.5">
+            <Checkbox
+              id="electric-only"
+              checked={electricOnly}
+              onCheckedChange={(checked) => setElectricOnly(checked === true)}
+            />
+            <Label
+              htmlFor="electric-only"
+              className="cursor-pointer text-sm text-muted-foreground"
+            >
+              Kun el/nullutslipp
+            </Label>
           </div>
 
           <div className="flex flex-col gap-1.5">

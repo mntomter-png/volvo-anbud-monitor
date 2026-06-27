@@ -7,6 +7,7 @@ import { DoffinClient, mapNoticeToTender } from "@/lib/doffin";
 import { createServerSupabase, TENDERS_TABLE } from "@/lib/supabase";
 import { SEARCH_KEYWORDS, matchVolvoKeywords } from "@/lib/keywords";
 import { sendNotificationEmail } from "@/lib/email";
+import { backfillTenderClassification } from "@/lib/backfill-classification";
 import type { DoffinNotice, TenderInsert } from "@/lib/types";
 
 export interface TenderSyncResult {
@@ -127,6 +128,8 @@ export async function runTenderSync(): Promise<TenderSyncResult> {
         searchErrors.push(`e-post: ${msg}`);
       }
     }
+
+    await backfillTenderClassification();
 
     return {
       ok: true,

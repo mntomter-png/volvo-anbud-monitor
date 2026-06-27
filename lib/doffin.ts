@@ -17,6 +17,7 @@ import type {
   TenderInsert,
 } from "@/lib/types";
 import { detectRegion } from "@/lib/keywords";
+import { buildClassificationText, classifyTender } from "@/lib/classify-tender";
 
 const DEFAULT_BASE_URL = "https://api.doffin.no/public/v2";
 
@@ -198,6 +199,17 @@ export function mapNoticeToTender(notice: DoffinNotice): TenderInsert {
     ...(notice.locationId ?? []),
   ].join(" ");
 
+  const classificationText = buildClassificationText({
+    title: notice.heading,
+    buyer,
+    description: notice.description,
+    cpvCodes: notice.cpvCodes,
+  });
+  const { tender_type, is_electric } = classifyTender(
+    classificationText,
+    notice.cpvCodes,
+  );
+
   return {
     doffin_id: notice.id,
     title: notice.heading ?? null,
@@ -208,5 +220,8 @@ export function mapNoticeToTender(notice: DoffinNotice): TenderInsert {
     estimated_value: notice.estimatedValue?.amount ?? null,
     url: buildDoffinUrl(notice),
     raw_data: notice as unknown as TenderInsert["raw_data"],
+    tender_type,
+    is_electric,
+    pipeline_status: "new",
   };
 }

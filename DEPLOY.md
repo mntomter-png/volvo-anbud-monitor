@@ -10,8 +10,6 @@
 
 ### 2. Miljøvariabler
 
-Under **Site configuration → Environment variables**, legg inn:
-
 | Variabel | Verdi |
 |----------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://tfgasnowoyatjotewwbn.supabase.co` |
@@ -25,6 +23,13 @@ Under **Site configuration → Environment variables**, legg inn:
 | `CRON_SECRET` | *(sterkt tilfeldig token – se `.env.local`)* |
 | `BASIC_AUTH_USER` | *(valgfri – brukernavn for kollegaer, f.eks. `volvo`)* |
 | `BASIC_AUTH_PASSWORD` | *(valgfri – felles passord for å åpne dashboardet)* |
+
+### 2b. Database-migrasjoner
+
+Etter nye skjemaendringer: åpne **Supabase → SQL Editor** og kjør filen
+`supabase/migrations/20260627100000_pipeline_fields.sql` (legger til type, el-flagg,
+status og ansvarlig). Deretter: trykk **«Hent nye anbud nå»** i dashboardet for å
+klassifisere eksisterende anbud.
 
 ### 3. Deploy
 

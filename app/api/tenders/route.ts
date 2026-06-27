@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createServerSupabase, TENDERS_TABLE } from "@/lib/supabase";
 import { REGION_NAMES } from "@/lib/keywords";
+import { isPipelineStatus, isTenderType } from "@/lib/pipeline";
 import type { TenderRow } from "@/lib/types";
 
 // Alltid dynamisk – vi leser ferske data fra databasen ved hvert kall.
@@ -15,6 +16,9 @@ const VALID_SORT_COLUMNS = new Set<keyof TenderRow>([
   "title",
   "buyer",
   "region",
+  "tender_type",
+  "pipeline_status",
+  "assignee",
   "created_at",
 ]);
 
@@ -28,6 +32,9 @@ const VALID_SORT_COLUMNS = new Set<keyof TenderRow>([
  *  - search:  fritekst som matcher tittel eller oppdragsgiver
  *  - from:    kun anbud publisert fra og med denne datoen (ISO/yyyy-mm-dd)
  *  - to:      kun anbud publisert til og med denne datoen
+ *  - tender_type: komma-separert (direct_purchase, transport_service, …)
+ *  - pipeline_status: komma-separert (new, reviewing, …)
+ *  - is_electric: "true" | "false"
  *  - sort:    kolonne å sortere på (default "published_at")
  *  - order:   "asc" | "desc" (default "desc")
  *  - limit:   maks antall rader (default 200, maks 1000)
@@ -41,6 +48,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")?.trim();
     const from = searchParams.get("from")?.trim();
     const to = searchParams.get("to")?.trim();
+    const tenderTypeParam = searchParams.get("tender_type");
+    const statusParam = searchParams.get("pipeline_status");
+    const electricParam = searchParams.get("is_electric");
     const sortParam = (searchParams.get("sort") ?? "published_at") as keyof TenderRow;
     const order = searchParams.get("order") === "asc" ? "asc" : "desc";
     const limit = Math.min(
@@ -81,6 +91,25 @@ export async function GET(request: NextRequest) {
     // Dato-range på publiseringsdato.
     if (from) query = query.gte("published_at", from);
     if (to) query = query.lte("published_at", to);
+
+    if (tenderTypeParam) {
+      const types = tenderTypeParam
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => isTenderType(t));
+      if (types.length > 0) query = query.in("tender_type", types);
+    }
+
+    if (statusParam) {
+      const statuses = statusParam
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => isPipelineStatus(s));
+      if (statuses.length > 0) query = query.in("pipeline_status", statuses);
+    }
+
+    if (electricParam === "true") query = query.eq("is_electric", true);
+    if (electricParam === "false") query = query.eq("is_electric", false);
 
     const { data, error, count } = await query;
 
