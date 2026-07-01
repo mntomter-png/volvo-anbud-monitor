@@ -52,8 +52,12 @@ export async function requireAdminProfile() {
 }
 
 export function getSiteUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  // Netlify setter URL/DEPLOY_PRIME_URL automatisk i produksjon.
+  const netlify =
+    process.env.DEPLOY_PRIME_URL ?? process.env.URL ?? process.env.DEPLOY_URL;
+  if (netlify) return netlify.replace(/\/$/, "");
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  if (process.env.URL) return process.env.URL;
   return "http://localhost:3000";
 }

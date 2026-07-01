@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Inviter første administrator (standard: anbud@biloversikt.com).
+ * Inviter første administrator (standard: martin.tomter@volvo.com).
  * Kjør etter profiles-migrasjon: npm run db:bootstrap-admin
  */
 
@@ -34,7 +34,7 @@ const siteUrl =
 const adminEmail = (
   process.argv[2] ??
   process.env.INITIAL_ADMIN_EMAIL ??
-  "anbud@biloversikt.com"
+  "martin.tomter@volvo.com"
 ).toLowerCase();
 
 if (!url || !serviceKey) {
@@ -92,19 +92,19 @@ async function sendInviteEmail(actionLink) {
 
 const redirectTo = `${siteUrl}/auth/callback?next=/auth/set-password`;
 
-let invite = await admin.auth.admin.inviteUserByEmail(adminEmail, {
-  redirectTo,
-  data: { full_name: "Administrator" },
+let invite = await admin.auth.admin.generateLink({
+  type: "invite",
+  email: adminEmail,
+  options: {
+    redirectTo,
+    data: { full_name: "Administrator" },
+  },
 });
 
 if (invite.error) {
-  invite = await admin.auth.admin.generateLink({
-    type: "invite",
-    email: adminEmail,
-    options: {
-      redirectTo,
-      data: { full_name: "Administrator" },
-    },
+  invite = await admin.auth.admin.inviteUserByEmail(adminEmail, {
+    redirectTo,
+    data: { full_name: "Administrator" },
   });
 }
 
@@ -116,10 +116,13 @@ if (invite.error) {
 const userId = invite.data?.user?.id;
 if (userId) await promoteToAdmin(userId);
 
-const actionLink = invite.data?.properties?.action_link;
+const actionLink =
+  invite.data?.properties?.action_link ??
+  (invite.data?.user ? null : null);
+
 if (actionLink) {
   await sendInviteEmail(actionLink);
   console.log(`✓ Aktiveringslenke sendt til ${adminEmail}.`);
 } else {
-  console.log(`✓ Admin opprettet for ${adminEmail}.`);
+  console.log(`✓ Admin klar for ${adminEmail} (sjekk e-post fra Supabase).`);
 }

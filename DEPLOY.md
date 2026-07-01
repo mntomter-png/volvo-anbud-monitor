@@ -18,7 +18,7 @@
 | `DOFFIN_API_KEY` | *(Doffin subscription key)* |
 | `DOFFIN_API_BASE_URL` | `https://api.doffin.no/public/v2` |
 | `RESEND_API_KEY` | *(fra Resend)* |
-| `NOTIFICATION_EMAIL` | `anbud@biloversikt.com` |
+| `NOTIFICATION_EMAIL` | `martin.tomter@volvo.com` |
 | `NOTIFICATION_FROM` | `Volvo Anbud-monitor <anbud@biloversikt.com>` |
 | `CRON_SECRET` | *(sterkt tilfeldig token – se `.env.local`)* |
 | `NEXT_PUBLIC_SITE_URL` | `https://anbudvt.netlify.app` *(produksjons-URL – brukes i invitasjonslenker)* |
@@ -32,7 +32,7 @@ npm run db:migrate -- supabase/migrations/20260701000000_profiles_auth.sql
 npm run db:bootstrap-admin
 ```
 
-`bootstrap-admin` inviterer `anbud@biloversikt.com` som første administrator (kan overstyres med `INITIAL_ADMIN_EMAIL`).
+`bootstrap-admin` inviterer `martin.tomter@volvo.com` som første administrator (kan overstyres med `INITIAL_ADMIN_EMAIL`).
 
 ### 2c. Supabase Auth (påkrevd for kollega-tilgang)
 
@@ -41,7 +41,7 @@ I **Supabase → Authentication → URL Configuration**:
 | Felt | Verdi |
 |------|-------|
 | Site URL | `https://anbudvt.netlify.app` |
-| Redirect URLs | `https://anbudvt.netlify.app/auth/callback`, `http://localhost:3000/auth/callback` |
+| Redirect URLs | `https://anbudvt.netlify.app/auth/callback`, `https://anbudvt.netlify.app/auth/set-password`, `https://anbudvt.netlify.app/auth/reset-password`, `http://localhost:3000/auth/callback` |
 
 Under **Authentication → Providers → Email**: slå på e-postinnlogging. Invitasjoner og passordtilbakestilling sendes fra Supabase (tilpass maler under **Email Templates**).
 

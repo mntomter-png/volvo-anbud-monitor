@@ -48,22 +48,22 @@ export async function inviteUser(
   let userId: string | null = null;
   let actionLink: string | null = null;
 
-  const invite = await admin.auth.admin.inviteUserByEmail(options.email, {
-    redirectTo: options.redirectTo,
-    data: metadata,
+  const invite = await admin.auth.admin.generateLink({
+    type: "invite",
+    email: options.email,
+    options: { redirectTo: options.redirectTo, data: metadata },
   });
 
-  if (!invite.error) {
-    userId = invite.data.user?.id ?? null;
-  } else {
-    const link = await admin.auth.admin.generateLink({
-      type: "invite",
-      email: options.email,
-      options: { redirectTo: options.redirectTo, data: metadata },
+  if (invite.error) {
+    const fallback = await admin.auth.admin.inviteUserByEmail(options.email, {
+      redirectTo: options.redirectTo,
+      data: metadata,
     });
-    if (link.error) throw new Error(link.error.message);
-    userId = link.data.user?.id ?? null;
-    actionLink = link.data.properties?.action_link ?? null;
+    if (fallback.error) throw new Error(fallback.error.message);
+    userId = fallback.data.user?.id ?? null;
+  } else {
+    userId = invite.data.user?.id ?? null;
+    actionLink = invite.data.properties?.action_link ?? null;
   }
 
   if (userId) {
@@ -80,8 +80,6 @@ export async function inviteUser(
   let emailSent = false;
   if (actionLink) {
     emailSent = await sendInviteEmail(options.email, actionLink);
-  } else {
-    emailSent = true;
   }
 
   return { userId, emailSent };
