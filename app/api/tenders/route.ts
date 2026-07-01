@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createServerSupabase, TENDERS_TABLE } from "@/lib/supabase";
+import { requireAuthProfile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { TENDERS_TABLE } from "@/lib/supabase";
 import { REGION_NAMES } from "@/lib/keywords";
 import { isPipelineStatus, isTenderType } from "@/lib/pipeline";
+import { EXPIRING_SOON_MONTHS, isNoticeKind } from "@/lib/notice-kind";
 import type { TenderRow } from "@/lib/types";
 
 // Alltid dynamisk – vi leser ferske data fra databasen ved hvert kall.
@@ -19,6 +22,9 @@ const VALID_SORT_COLUMNS = new Set<keyof TenderRow>([
   "tender_type",
   "pipeline_status",
   "assignee",
+  "notice_kind",
+  "contract_end_date",
+  "winner_name",
   "created_at",
 ]);
 
@@ -35,12 +41,17 @@ const VALID_SORT_COLUMNS = new Set<keyof TenderRow>([
  *  - tender_type: komma-separert (direct_purchase, transport_service, …)
  *  - pipeline_status: komma-separert (new, reviewing, …)
  *  - is_electric: "true" | "false"
+ *  - notice_kind: competition | award (komma-separert)
+ *  - expiring_soon: "true" – tildelinger med kontrakt som utløper innen 6 mnd
  *  - sort:    kolonne å sortere på (default "published_at")
  *  - order:   "asc" | "desc" (default "desc")
  *  - limit:   maks antall rader (default 200, maks 1000)
  *  - offset:  paginering
  */
 export async function GET(request: NextRequest) {
+  const auth = await requireAuthProfile();
+  if (auth.error) return auth.error;
+
   try {
     const { searchParams } = request.nextUrl;
 
@@ -51,6 +62,8 @@ export async function GET(request: NextRequest) {
     const tenderTypeParam = searchParams.get("tender_type");
     const statusParam = searchParams.get("pipeline_status");
     const electricParam = searchParams.get("is_electric");
+    const noticeKindParam = searchParams.get("notice_kind");
+    const expiringSoon = searchParams.get("expiring_soon") === "true";
     const sortParam = (searchParams.get("sort") ?? "published_at") as keyof TenderRow;
     const order = searchParams.get("order") === "asc" ? "asc" : "desc";
     const limit = Math.min(
@@ -63,7 +76,7 @@ export async function GET(request: NextRequest) {
       ? sortParam
       : "published_at";
 
-    const supabase = createServerSupabase();
+    const supabase = await createClient();
 
     let query = supabase
       .from(TENDERS_TABLE)
@@ -110,6 +123,25 @@ export async function GET(request: NextRequest) {
 
     if (electricParam === "true") query = query.eq("is_electric", true);
     if (electricParam === "false") query = query.eq("is_electric", false);
+
+    if (noticeKindParam) {
+      const kinds = noticeKindParam
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => isNoticeKind(k));
+      if (kinds.length > 0) query = query.in("notice_kind", kinds);
+    }
+
+    if (expiringSoon) {
+      const now = new Date();
+      const horizon = new Date(now);
+      horizon.setMonth(horizon.getMonth() + EXPIRING_SOON_MONTHS);
+      query = query
+        .eq("notice_kind", "award")
+        .not("contract_end_date", "is", null)
+        .gte("contract_end_date", now.toISOString())
+        .lte("contract_end_date", horizon.toISOString());
+    }
 
     const { data, error, count } = await query;
 

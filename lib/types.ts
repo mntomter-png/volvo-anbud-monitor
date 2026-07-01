@@ -6,6 +6,7 @@
  */
 
 import type { PipelineStatus, TenderType } from "@/lib/pipeline";
+import type { NoticeKind } from "@/lib/notice-kind";
 
 /** JSON-kompatibel verdi (for `raw_data`-kolonnen). */
 export type Json =
@@ -36,6 +37,10 @@ export type TenderRow = {
   is_electric: boolean;
   pipeline_status: PipelineStatus;
   assignee: string | null;
+  notice_kind: NoticeKind;
+  winner_name: string | null;
+  contract_duration_months: number | null;
+  contract_end_date: string | null;
   created_at: string;
 }
 
@@ -54,12 +59,40 @@ export type TenderInsert = {
   is_electric?: boolean;
   pipeline_status?: PipelineStatus;
   assignee?: string | null;
+  notice_kind?: NoticeKind;
+  winner_name?: string | null;
+  contract_duration_months?: number | null;
+  contract_end_date?: string | null;
 }
 
 /** Felt som kan oppdateres fra dashboardet (pipeline-arbeidsflyt). */
 export type TenderPipelineUpdate = {
   pipeline_status?: PipelineStatus;
   assignee?: string | null;
+}
+
+export type ProfileRow = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: "user" | "admin";
+  invited_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ProfileInsert = {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  role?: "user" | "admin";
+  invited_by?: string | null;
+}
+
+export type ProfileUpdate = {
+  full_name?: string | null;
+  role?: "user" | "admin";
+  invited_by?: string | null;
 }
 
 /**
@@ -73,6 +106,18 @@ export type Database = {
         Row: TenderRow;
         Insert: TenderInsert;
         Update: Partial<TenderInsert> & TenderPipelineUpdate;
+        Relationships: [];
+      };
+      profiles: {
+        Row: ProfileRow;
+        Insert: ProfileInsert;
+        Update: ProfileUpdate;
+        Relationships: [];
+      };
+      app_settings: {
+        Row: { key: string; value: string };
+        Insert: { key: string; value: string };
+        Update: { value?: string };
         Relationships: [];
       };
     };

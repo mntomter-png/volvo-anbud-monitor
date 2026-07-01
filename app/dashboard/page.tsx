@@ -1,6 +1,9 @@
-import { Truck, MapPin, Tag, Bell } from "lucide-react";
+import { redirect } from "next/navigation";
+import { MapPin, Tag, Bell, Trophy, Truck } from "lucide-react";
 
+import { AppHeader } from "@/components/app-header";
 import { REGION_NAMES, VOLVO_KEYWORDS } from "@/lib/keywords";
+import { getSessionProfile } from "@/lib/auth/session";
 import {
   Card,
   CardContent,
@@ -49,28 +52,17 @@ function StatCard({
   );
 }
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { user, profile } = await getSessionProfile();
+  if (!user) redirect("/login?next=/dashboard");
+
   return (
     <div className="min-h-screen bg-muted/30">
-      {/* Topptekst */}
-      <header className="border-b bg-background">
-        <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Truck className="size-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">
-                Anbud-monitor · Volvo Norge
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Offentlige anbud for lastebiler, tungtransport, service og
-                anleggsmaskiner
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        email={profile?.email ?? user.email}
+        isAdmin={profile?.role === "admin"}
+        active="dashboard"
+      />
 
       <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Statistikk-kort */}
@@ -91,13 +83,13 @@ export default function DashboardPage() {
             icon={Bell}
             label="Varsling"
             value="Daglig"
-            hint="E-post via Resend ved nye relevante anbud"
+            hint="E-post ved nye konkurranser og tildelinger"
           />
           <StatCard
-            icon={Truck}
-            label="Datakilde"
-            value="Doffin v2"
-            hint="Norsk database for offentlige anskaffelser"
+            icon={Trophy}
+            label="Kontraktsinnsikt"
+            value="Tildelinger"
+            hint="Vinner og estimert utløp – filtrer «utløper snart»"
           />
         </div>
 
@@ -108,7 +100,7 @@ export default function DashboardPage() {
               <div>
                 <CardTitle>Relevante anbud</CardTitle>
                 <CardDescription>
-                  Filtrer på region, søk i fritekst og sorter kolonnene.
+                  Filtrer på region, kategori, status og se tildelinger med utløpende kontrakter.
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="gap-1">

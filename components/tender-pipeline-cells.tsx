@@ -55,6 +55,22 @@ export function ElectricBadge({ isElectric }: { isElectric: boolean }) {
   );
 }
 
+export function NoticeKindBadge({ kind }: { kind: string }) {
+  const isAward = kind === "award";
+  return (
+    <Badge
+      variant={isAward ? "secondary" : "outline"}
+      className={cn(
+        "whitespace-nowrap",
+        isAward &&
+          "border-teal-300 bg-teal-50 text-teal-900 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-200",
+      )}
+    >
+      {kind === "award" ? "Tildeling" : "Konkurranse"}
+    </Badge>
+  );
+}
+
 const STATUS_COLORS: Record<PipelineStatus, string> = {
   new: "",
   reviewing: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",

@@ -16,6 +16,13 @@ import type {
   DoffinSearchResponse,
   TenderInsert,
 } from "@/lib/types";
+import {
+  buildAwardText,
+  calculateContractEndDate,
+  extractContractDurationMonths,
+  extractWinnerName,
+  isAwardNotice,
+} from "@/lib/award-contract";
 import { detectRegion } from "@/lib/keywords";
 import { buildClassificationText, classifyTender } from "@/lib/classify-tender";
 
@@ -210,12 +217,42 @@ export function mapNoticeToTender(notice: DoffinNotice): TenderInsert {
     notice.cpvCodes,
   );
 
+  const publishedAt = notice.publicationDate ?? notice.issueDate ?? null;
+  const isAward = isAwardNotice(notice);
+
+  if (isAward) {
+    const awardText = buildAwardText(notice);
+    const contractDurationMonths = extractContractDurationMonths(awardText);
+
+    return {
+      doffin_id: notice.id,
+      title: notice.heading ?? null,
+      buyer,
+      region: detectRegion(regionText),
+      published_at: publishedAt,
+      deadline: null,
+      estimated_value: notice.estimatedValue?.amount ?? null,
+      url: buildDoffinUrl(notice),
+      raw_data: notice as unknown as TenderInsert["raw_data"],
+      tender_type,
+      is_electric,
+      pipeline_status: "new",
+      notice_kind: "award",
+      winner_name: extractWinnerName(notice),
+      contract_duration_months: contractDurationMonths,
+      contract_end_date: calculateContractEndDate(
+        publishedAt,
+        contractDurationMonths,
+      ),
+    };
+  }
+
   return {
     doffin_id: notice.id,
     title: notice.heading ?? null,
     buyer,
     region: detectRegion(regionText),
-    published_at: notice.publicationDate ?? notice.issueDate ?? null,
+    published_at: publishedAt,
     deadline: notice.deadline ?? null,
     estimated_value: notice.estimatedValue?.amount ?? null,
     url: buildDoffinUrl(notice),
@@ -223,5 +260,6 @@ export function mapNoticeToTender(notice: DoffinNotice): TenderInsert {
     tender_type,
     is_electric,
     pipeline_status: "new",
+    notice_kind: "competition",
   };
 }

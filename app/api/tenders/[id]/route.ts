@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createServerSupabase, TENDERS_TABLE } from "@/lib/supabase";
+import { requireAuthProfile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { TENDERS_TABLE } from "@/lib/supabase";
 import { isPipelineStatus } from "@/lib/pipeline";
 import type { TenderPipelineUpdate, TenderRow } from "@/lib/types";
 
@@ -15,6 +17,9 @@ type RouteContext = { params: Promise<{ id: string }> };
  * Oppdater pipeline-felter (status, ansvarlig) fra dashboardet.
  */
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  const auth = await requireAuthProfile();
+  if (auth.error) return auth.error;
+
   try {
     const { id } = await context.params;
     const body = (await request.json()) as TenderPipelineUpdate;
@@ -44,7 +49,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    const supabase = createServerSupabase();
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from(TENDERS_TABLE)
       .update(updates)

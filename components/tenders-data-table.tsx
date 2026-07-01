@@ -22,7 +22,11 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatDate, daysUntil } from "@/lib/format";
+import { formatCurrency, formatDate, daysUntil, monthsUntil } from "@/lib/format";
+import {
+  NOTICE_KINDS,
+  NOTICE_KIND_LABELS,
+} from "@/lib/notice-kind";
 import {
   PIPELINE_STATUSES,
   PIPELINE_STATUS_LABELS,
@@ -48,6 +52,7 @@ import { FilterMultiSelect } from "@/components/filter-multi-select";
 import {
   AssigneeSelect,
   ElectricBadge,
+  NoticeKindBadge,
   PipelineStatusSelect,
   TenderTypeBadge,
 } from "@/components/tender-pipeline-cells";
@@ -62,6 +67,8 @@ interface NotificationResult {
   fetched?: number;
   relevant?: number;
   new?: number;
+  awardsNew?: number;
+  awardsFetched?: number;
   emailSent?: boolean;
   error?: string;
   details?: string;
@@ -119,6 +126,23 @@ function DeadlineCell({ value }: { value: string | null }) {
   );
 }
 
+function ContractEndCell({ value }: { value: string | null }) {
+  const months = monthsUntil(value);
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="font-medium">{formatDate(value)}</span>
+      {months !== null && months >= 0 && (
+        <Badge
+          variant={months <= 3 ? "destructive" : months <= 6 ? "default" : "secondary"}
+          className="w-fit text-[10px]"
+        >
+          {months === 0 ? "Denne måneden" : months === 1 ? "1 mnd" : `${months} mnd`}
+        </Badge>
+      )}
+    </div>
+  );
+}
+
 export function TendersDataTable({ regions }: { regions: string[] }) {
   const [rows, setRows] = React.useState<TenderRow[]>([]);
   const [count, setCount] = React.useState(0);
@@ -130,7 +154,9 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
   const [selectedRegions, setSelectedRegions] = React.useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
   const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
+  const [selectedKinds, setSelectedKinds] = React.useState<string[]>([]);
   const [electricOnly, setElectricOnly] = React.useState(false);
+  const [expiringSoon, setExpiringSoon] = React.useState(false);
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
 
@@ -165,7 +191,10 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         params.set("tender_type", selectedTypes.join(","));
       if (selectedStatuses.length > 0)
         params.set("pipeline_status", selectedStatuses.join(","));
+      if (selectedKinds.length > 0)
+        params.set("notice_kind", selectedKinds.join(","));
       if (electricOnly) params.set("is_electric", "true");
+      if (expiringSoon) params.set("expiring_soon", "true");
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (from) params.set("from", from);
       if (to) params.set("to", to);
@@ -186,7 +215,7 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedRegions, selectedTypes, selectedStatuses, electricOnly, debouncedSearch, from, to]);
+  }, [selectedRegions, selectedTypes, selectedStatuses, selectedKinds, electricOnly, expiringSoon, debouncedSearch, from, to]);
 
   React.useEffect(() => {
     void fetchTenders();
@@ -206,7 +235,9 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         type: "success",
         message: `Hentet ${json.fetched ?? 0} kunngjøringer · ${
           json.new ?? 0
-        } nye lagret${json.emailSent ? " · e-post sendt" : ""}.`,
+        } nye lagret${
+          json.awardsNew ? ` (${json.awardsNew} tildelinger)` : ""
+        }${json.emailSent ? " · e-post sendt" : ""}.`,
       });
       await fetchTenders();
     } catch (err) {
@@ -224,7 +255,9 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
     setSelectedRegions([]);
     setSelectedTypes([]);
     setSelectedStatuses([]);
+    setSelectedKinds([]);
     setElectricOnly(false);
+    setExpiringSoon(false);
     setFrom("");
     setTo("");
   }
@@ -234,6 +267,15 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
       TENDER_TYPES.map((t) => ({
         value: t,
         label: TENDER_TYPE_LABELS[t],
+      })),
+    [],
+  );
+
+  const kindOptions = React.useMemo(
+    () =>
+      NOTICE_KINDS.map((k) => ({
+        value: k,
+        label: NOTICE_KIND_LABELS[k],
       })),
     [],
   );
@@ -267,6 +309,13 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         ),
       },
       {
+        accessorKey: "notice_kind",
+        header: "Kategori",
+        cell: ({ row }) => (
+          <NoticeKindBadge kind={row.original.notice_kind ?? "competition"} />
+        ),
+      },
+      {
         accessorKey: "tender_type",
         header: "Type",
         cell: ({ row }) => (
@@ -278,6 +327,15 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         header: "El",
         cell: ({ row }) => (
           <ElectricBadge isElectric={row.original.is_electric ?? false} />
+        ),
+      },
+      {
+        accessorKey: "winner_name",
+        header: "Vinner",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.winner_name ?? "—"}
+          </span>
         ),
       },
       {
@@ -299,7 +357,22 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
       {
         accessorKey: "deadline",
         header: "Frist",
-        cell: ({ row }) => <DeadlineCell value={row.original.deadline} />,
+        cell: ({ row }) =>
+          row.original.notice_kind === "award" ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <DeadlineCell value={row.original.deadline} />
+          ),
+      },
+      {
+        accessorKey: "contract_end_date",
+        header: "Kontrakt utløper",
+        cell: ({ row }) =>
+          row.original.notice_kind === "award" ? (
+            <ContractEndCell value={row.original.contract_end_date} />
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         accessorKey: "buyer",
@@ -379,6 +452,16 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
+            <Label className="text-xs text-muted-foreground">Kategori</Label>
+            <FilterMultiSelect
+              label="Alle kategorier"
+              options={kindOptions}
+              selected={selectedKinds}
+              onChange={setSelectedKinds}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
             <Label className="text-xs text-muted-foreground">Status</Label>
             <FilterMultiSelect
               label="Alle statuser"
@@ -397,18 +480,33 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
             />
           </div>
 
-          <div className="flex items-end gap-2 pb-0.5">
-            <Checkbox
-              id="electric-only"
-              checked={electricOnly}
-              onCheckedChange={(checked) => setElectricOnly(checked === true)}
-            />
-            <Label
-              htmlFor="electric-only"
-              className="cursor-pointer text-sm text-muted-foreground"
-            >
-              Kun el/nullutslipp
-            </Label>
+          <div className="flex items-end gap-4 pb-0.5">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="electric-only"
+                checked={electricOnly}
+                onCheckedChange={(checked) => setElectricOnly(checked === true)}
+              />
+              <Label
+                htmlFor="electric-only"
+                className="cursor-pointer text-sm text-muted-foreground"
+              >
+                Kun el/nullutslipp
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="expiring-soon"
+                checked={expiringSoon}
+                onCheckedChange={(checked) => setExpiringSoon(checked === true)}
+              />
+              <Label
+                htmlFor="expiring-soon"
+                className="cursor-pointer text-sm text-muted-foreground"
+              >
+                Kontrakter utløper snart
+              </Label>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

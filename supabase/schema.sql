@@ -22,6 +22,11 @@ create table if not exists public.tenders (
       'new', 'reviewing', 'pursuing', 'bid_submitted', 'won', 'lost', 'not_relevant'
     )),
   assignee        text,
+  notice_kind     text not null default 'competition'
+    check (notice_kind in ('competition', 'award')),
+  winner_name     text,
+  contract_duration_months integer,
+  contract_end_date timestamptz,
   created_at      timestamptz not null default now()
 );
 
@@ -34,6 +39,8 @@ create index if not exists tenders_tender_type_idx   on public.tenders (tender_t
 create index if not exists tenders_pipeline_status_idx on public.tenders (pipeline_status);
 create index if not exists tenders_is_electric_idx   on public.tenders (is_electric);
 create index if not exists tenders_assignee_idx      on public.tenders (assignee);
+create index if not exists tenders_notice_kind_idx   on public.tenders (notice_kind);
+create index if not exists tenders_contract_end_date_idx on public.tenders (contract_end_date);
 
 -- Row Level Security
 alter table public.tenders enable row level security;

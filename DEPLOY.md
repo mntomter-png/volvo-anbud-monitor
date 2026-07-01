@@ -21,15 +21,39 @@
 | `NOTIFICATION_EMAIL` | `anbud@biloversikt.com` |
 | `NOTIFICATION_FROM` | `Volvo Anbud-monitor <anbud@biloversikt.com>` |
 | `CRON_SECRET` | *(sterkt tilfeldig token – se `.env.local`)* |
-| `BASIC_AUTH_USER` | *(valgfri – brukernavn for kollegaer, f.eks. `volvo`)* |
-| `BASIC_AUTH_PASSWORD` | *(valgfri – felles passord for å åpne dashboardet)* |
+| `NEXT_PUBLIC_SITE_URL` | `https://anbudvt.netlify.app` *(produksjons-URL – brukes i invitasjonslenker)* |
 
-### 2b. Database-migrasjoner
+### 2b. Database-migrasjoner og brukere
 
-Etter nye skjemaendringer: åpne **Supabase → SQL Editor** og kjør filen
-`supabase/migrations/20260627100000_pipeline_fields.sql` (legger til type, el-flagg,
-status og ansvarlig). Deretter: trykk **«Hent nye anbud nå»** i dashboardet for å
-klassifisere eksisterende anbud.
+Kjør migrasjoner etter `supabase login`:
+
+```bash
+npm run db:migrate -- supabase/migrations/20260701000000_profiles_auth.sql
+npm run db:bootstrap-admin
+```
+
+`bootstrap-admin` inviterer `anbud@biloversikt.com` som første administrator (kan overstyres med `INITIAL_ADMIN_EMAIL`).
+
+### 2c. Supabase Auth (påkrevd for kollega-tilgang)
+
+I **Supabase → Authentication → URL Configuration**:
+
+| Felt | Verdi |
+|------|-------|
+| Site URL | `https://anbudvt.netlify.app` |
+| Redirect URLs | `https://anbudvt.netlify.app/auth/callback`, `http://localhost:3000/auth/callback` |
+
+Under **Authentication → Providers → Email**: slå på e-postinnlogging. Invitasjoner og passordtilbakestilling sendes fra Supabase (tilpass maler under **Email Templates**).
+
+**Første innlogging (admin):**
+
+1. Kjør `npm run db:bootstrap-admin`
+2. Åpne invitasjonslenken i e-posten → velg passord på `/auth/set-password`
+3. Logg inn på `/login`
+
+**Invitere kollegaer:** Logg inn som admin → **Brukere** → fyll inn e-post → **Send invitasjon**.
+
+**Glemt passord:** `/auth/forgot-password` sender tilbakestillingslenke.
 
 ### 3. Deploy
 
@@ -50,15 +74,12 @@ curl -X POST https://<din-netlify-url>/api/notifications \
 
 ### 6. Del med kollegaer
 
-1. Sett `BASIC_AUTH_USER` og `BASIC_AUTH_PASSWORD` i Netlify (se tabellen over).
-2. Deploy på nytt etter at variablene er satt.
-3. Send kollegaer:
-   - **Lenke:** `https://anbudvt.netlify.app/dashboard`
-   - **Brukernavn** og **passord** (samme for alle – nettleseren husker innloggingen)
+1. Deploy med `NEXT_PUBLIC_SITE_URL` satt til produksjons-URL.
+2. Kjør migrasjon og `npm run db:bootstrap-admin` for første admin.
+3. Logg inn som admin → **Brukere** → inviter kollegaer med e-post.
+4. Kollegaer får invitasjon, velger passord og logger inn på `/login`.
 
-Uten Basic Auth er dashboardet åpent for alle som har lenken. Cron-jobb og `/api/notifications` er fortsatt beskyttet med `CRON_SECRET`.
-
-Knappen **«Hent nye anbud nå»** kaller `/api/sync` (ikke cron-endepunktet).
+Cron-jobb (`/api/notifications`) er fortsatt beskyttet med `CRON_SECRET`. Dashboard og API krever innlogging via Supabase Auth.
 
 ---
 

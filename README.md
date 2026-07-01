@@ -9,13 +9,19 @@ regionene **Oslo, Akershus, Buskerud og Innlandet**.
 
 - 🔎 **Doffin Public API v2-klient** (`searchNotices`, `getNotice`) med
   `Ocp-Apim-Subscription-Key`, timeout og strukturert feilhåndtering.
+- 📄 **Paginert søk** – henter alle sider (opptil 1000 treff per søk), ikke bare første side.
+- 🏷️ **CPV-kodesøk** – fanger anbud med relevante CPV-koder selv uten nøkkelord i tittelen.
 - 🧠 **Volvo-relevant filtrering** basert på sterke nøkkelord
   (lastebil, tungtransport, volvo, reservedeler, service, anleggsmaskin, …).
+- 🏆 **Tildelingskunngjøringer** – henter RESULT/kontraktsinngåelse, lagrer vinner og
+  estimerer kontraktslutt ut fra varighet i teksten.
 - 📍 **Regiondeteksjon** for Oslo, Akershus, Buskerud og Innlandet.
 - 💾 **Lagring i Supabase** med deduplisering på `doffin_id`.
 - ✉️ **Daglig e-postvarsel** via Resend – kun når det finnes _nye_ relevante anbud.
 - 📊 **Moderne dashboard** (shadcn/ui + TanStack Table) med multi-select
   regionfilter, fritekstsøk, dato-range og sortering.
+- 👥 **Brukere og roller** – Supabase Auth med admin, invitasjon på e-post og
+  tilbakestilling av passord.
 - ☁️ **Klar for deploy** på Netlify (inkl. schedulert funksjon) eller Cloudflare.
 
 ## Teknologi
@@ -80,13 +86,16 @@ Henter lagrede anbud fra Supabase med filtrering.
 | `search`  | `lastebil`           | Fritekst på tittel/oppdragsgiver     |
 | `from`    | `2026-01-01`         | Publisert fra og med                 |
 | `to`      | `2026-12-31`         | Publisert til og med                 |
+| `notice_kind` | `award`          | Konkurranse eller tildeling          |
+| `expiring_soon` | `true`         | Tildelinger med kontrakt som utløper innen 6 mnd |
 | `sort`    | `deadline`           | Sorteringskolonne                    |
 | `order`   | `asc` / `desc`       | Sorteringsretning                    |
 
 ### `POST /api/notifications`
 
-Kjører hovedjobben: søker i Doffin, filtrerer på Volvo-relevans + region,
-lagrer nye anbud og sender e-post hvis det finnes nye. Beskyttes valgfritt med
+Kjører hovedjobben: søker i Doffin (nøkkelord + CPV, paginert), henter også
+tildelingskunngjøringer, filtrerer på Volvo-relevans + region, lagrer nye anbud
+og sender e-post hvis det finnes nye. Beskyttes valgfritt med
 `Authorization: Bearer <CRON_SECRET>`.
 
 ```bash
@@ -152,7 +161,10 @@ lib/
   doffin.ts                 # Doffin API v2-klient
   supabase.ts               # Supabase-klienter
   email.ts                  # Resend HTML-e-post
-  keywords.ts               # Volvo-nøkkelord + regioner
+  keywords.ts               # Volvo-nøkkelord + regioner + CPV
+  doffin-paginated.ts       # Paginert Doffin-søk
+  award-contract.ts         # Parsing av tildelinger og kontraktslutt
+  notice-kind.ts            # Konkurranse vs. tildeling
   types.ts                  # Felles typer (inkl. Database)
   format.ts                 # Formattering (dato/valuta)
 supabase/schema.sql         # Databaseskjema

@@ -28,3 +28,12 @@ export function daysUntil(value?: string | null): number | null {
   const diff = d.getTime() - Date.now();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
+
+/** Antall måneder til kontraktslutt (avrundet ned). null hvis ingen dato. */
+export function monthsUntil(value?: string | null): number | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  const diffMs = d.getTime() - Date.now();
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30.44));
+}

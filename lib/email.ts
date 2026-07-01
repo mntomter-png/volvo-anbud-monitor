@@ -7,6 +7,7 @@
 import { Resend } from "resend";
 
 import type { TenderInsert } from "@/lib/types";
+import { NOTICE_KIND_LABELS, type NoticeKind } from "@/lib/notice-kind";
 
 const BRAND = "#1c4b9b"; // Volvo-blå
 const ACCENT = "#0b2a52";
@@ -47,14 +48,28 @@ export function renderTenderEmail(tenders: TenderInsert[]): string {
       const buyer = escapeHtml(t.buyer ?? "Ukjent oppdragsgiver");
       const region = escapeHtml(t.region ?? "—");
       const url = t.url ?? "https://www.doffin.no";
+      const kind = t.notice_kind ?? "competition";
+      const kindLabel = NOTICE_KIND_LABELS[kind as NoticeKind] ?? "Konkurranse";
+      const winner =
+        kind === "award" && t.winner_name
+          ? `<div style="margin-top:6px;font-size:12px;color:#0f766e;">Vinner: <strong>${escapeHtml(t.winner_name)}</strong></div>`
+          : "";
+      const deadlineLine =
+        kind === "award"
+          ? t.contract_end_date
+            ? `<span style="margin-left:10px;">Kontrakt utløper: <strong>${formatDate(t.contract_end_date)}</strong></span>`
+            : ""
+          : `<span style="margin-left:10px;">Frist: <strong>${formatDate(t.deadline)}</strong></span>`;
       return `
         <tr>
           <td style="padding:16px;border-bottom:1px solid #e6e9ef;vertical-align:top;">
             <a href="${url}" style="color:${BRAND};font-weight:600;font-size:15px;text-decoration:none;">${title}</a>
             <div style="margin-top:6px;color:#5b6472;font-size:13px;">${buyer}</div>
+            ${winner}
             <div style="margin-top:10px;font-size:12px;color:#5b6472;">
               <span style="display:inline-block;background:#eef2fb;color:${ACCENT};padding:3px 8px;border-radius:999px;font-weight:600;">${region}</span>
-              <span style="margin-left:10px;">Frist: <strong>${formatDate(t.deadline)}</strong></span>
+              <span style="display:inline-block;margin-left:8px;background:#f1f5f9;color:#475569;padding:3px 8px;border-radius:999px;font-weight:600;">${kindLabel}</span>
+              ${deadlineLine}
               <span style="margin-left:10px;">Verdi: <strong>${formatValue(t.estimated_value)}</strong></span>
             </div>
           </td>

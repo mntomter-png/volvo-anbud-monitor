@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAuthProfile } from "@/lib/auth/session";
 import { runTenderSync } from "@/lib/run-tender-sync";
 
 export const runtime = "nodejs";
@@ -13,6 +14,9 @@ export const maxDuration = 60;
  * Krever ikke CRON_SECRET – beskyttes av valgfri Basic Auth på siden.
  */
 export async function POST() {
+  const auth = await requireAuthProfile();
+  if (auth.error) return auth.error;
+
   const result = await runTenderSync();
   if (!result.ok) {
     return NextResponse.json(result, { status: 500 });
