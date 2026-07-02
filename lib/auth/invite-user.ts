@@ -35,7 +35,12 @@ async function sendInviteEmail(to: string, actionLink: string) {
     </body></html>`,
   });
 
-  return !error;
+  if (error) {
+    console.error("[invite-email] Resend-feil:", error.message, { from, to });
+    return false;
+  }
+
+  return true;
 }
 
 /** Inviter bruker – faller tilbake til generateLink + Resend hvis Supabase invite feiler. */
