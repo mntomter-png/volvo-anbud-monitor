@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { MapPin, Tag, Bell, Trophy, Truck } from "lucide-react";
 
 import { AppHeader } from "@/components/app-header";
-import { REGION_NAMES, VOLVO_KEYWORDS } from "@/lib/keywords";
+import { REGION_NAMES, TRUCK_KEYWORDS, TRUCK_EXCLUDE_KEYWORDS } from "@/lib/keywords";
 import { getSessionProfile } from "@/lib/auth/session";
 import {
   Card,
@@ -15,9 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { TendersDataTable } from "@/components/tenders-data-table";
 
 export const metadata = {
-  title: "Dashboard – Anbud-monitor Volvo Norge",
+  title: "Dashboard – Volvo Trucks Anbud-monitor",
   description:
-    "Overvåk offentlige anbud relevante for Volvo lastebiler i Oslo, Akershus, Buskerud og Innlandet.",
+    "Overvåk offentlige anbud for tunglastebil (Volvo og Renault) i Oslo, Akershus, Buskerud og Innlandet.",
 };
 
 // Dashbordet viser ferske data og skal ikke caches statisk.
@@ -75,9 +75,9 @@ export default async function DashboardPage() {
           />
           <StatCard
             icon={Tag}
-            label="Volvo-nøkkelord"
-            value={String(VOLVO_KEYWORDS.length)}
-            hint="Lastebil, tungtransport, service, anleggsmaskin m.fl."
+            label="Truck-nøkkelord"
+            value={String(TRUCK_KEYWORDS.length)}
+            hint={`Tunglastebil, Volvo/Renault, service · ${TRUCK_EXCLUDE_KEYWORDS.length} ekskluderinger`}
           />
           <StatCard
             icon={Bell}
@@ -100,11 +100,11 @@ export default async function DashboardPage() {
               <div>
                 <CardTitle>Relevante anbud</CardTitle>
                 <CardDescription>
-                  Filtrer på region, kategori, status og se tildelinger med utløpende kontrakter.
+                  Tunglastebil der Volvo eller Renault kan levere. Standardfilter: direkte salg.
                 </CardDescription>
               </div>
               <Badge variant="secondary" className="gap-1">
-                <Truck className="size-3" /> Kun Volvo-relevante
+                <Truck className="size-3" /> Volvo Trucks · Renault Trucks
               </Badge>
             </div>
           </CardHeader>
@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
       <footer className="border-t bg-background">
         <div className="mx-auto max-w-7xl px-4 py-4 text-center text-xs text-muted-foreground sm:px-6 lg:px-8">
-          Anbud-monitor for Volvo Norge · Data fra Doffin Public API v2
+          Volvo Trucks anbud-monitor · Data fra Doffin Public API v2
         </div>
       </footer>
     </div>

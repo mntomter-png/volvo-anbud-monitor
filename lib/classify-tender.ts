@@ -18,29 +18,25 @@ const DIRECT_PURCHASE_KEYWORDS = [
   "leveranse av",
   "levering av",
   "leasing av kjøretøy",
+  "leasing av lastebil",
   "flåtefornyelse",
   "nye lastebil",
   "ny lastebil",
-  "nye kjøretøy",
-  "nytt kjøretøy",
   "erstatning av kjøretøy",
   "utskifting av kjøretøy",
-  "anskaffelse av kjøretøy",
   "anskaffelse av lastebil",
   "kjøp/leasing",
   "lastebil",
   "tungbil",
-  "anleggsmaskin",
-  "hjullaster",
-  "gravemaskin",
-  "dumper",
+  "tunglastebil",
   "tippbil",
   "kranbil",
   "krokbil",
   "renovasjonsbil",
   "trekkvogn",
   "semitrailer",
-  "nyttekjøretøy",
+  "volvo trucks",
+  "renault trucks",
 ];
 
 const TRANSPORT_SERVICE_KEYWORDS = [
@@ -79,9 +75,11 @@ const SERVICE_PARTS_KEYWORDS = [
   "ettermarked",
   "dekk",
   "oljeskift",
-  "service på",
+  "service på lastebil",
+  "vedlikehold av lastebil",
   "vedlikeholdsavtale",
-  "reparasjon av",
+  "reparasjon av lastebil",
+  "lastebilverksted",
 ];
 
 const ELECTRIC_KEYWORDS = [
@@ -103,13 +101,10 @@ const ELECTRIC_KEYWORDS = [
 
 /** CPV-koder som styrker klassifisering. */
 const CPV_DIRECT = new Set([
-  "34100000",
   "34130000",
   "34140000",
   "34144000",
   "34144510",
-  "43200000",
-  "43210000",
 ]);
 
 const CPV_SERVICE = new Set(["50110000", "34330000"]);

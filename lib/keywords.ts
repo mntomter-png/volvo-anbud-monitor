@@ -1,88 +1,225 @@
 /**
- * Domenekonfigurasjon for anbud-monitoren:
- *  - VOLVO_KEYWORDS: sterke nøkkelord for anbud der Volvo (tungtransport,
- *    lastebiler, service, reservedeler, anleggsmaskiner) er relevant.
- *  - REGIONS: de fire regionene vi overvåker + tekst-baserte "matchers"
- *    som brukes til å avgjøre hvilken region et anbud tilhører.
- *  - CPV_CODES: relevante CPV-koder (kjøretøy/transport/anleggsmaskiner).
+ * Domenekonfigurasjon for anbud-monitoren (Volvo Trucks):
+ *  - TRUCK_KEYWORDS: nøkkelord for tunglastebil der Volvo eller Renault kan levere
+ *  - TRUCK_EXCLUDE_KEYWORDS: støy (buss, anleggsmaskin, ren transport m.m.)
+ *  - REGIONS: de fire regionene vi overvåker
+ *  - CPV_CODES: relevante CPV-koder for tunge lastebiler og ettermarked
  */
 
-/** Nøkkelord som indikerer at et anbud er relevant for Volvo. */
-export const VOLVO_KEYWORDS: string[] = [
+/** Sterke signaler for tunglastebil / truck-relevans. */
+export const TRUCK_KEYWORDS: string[] = [
   "lastebil",
   "lastebiler",
   "tungbil",
   "tungtransport",
-  "volvo",
-  "reservedel",
-  "reservedeler",
-  "service",
-  "vedlikehold",
-  "verksted",
-  "flåte",
-  "flåtestyring",
-  "kjøretøy",
-  "nyttekjøretøy",
-  "anleggsmaskin",
-  "anleggsmaskiner",
-  "hjullaster",
-  "gravemaskin",
-  "dumper",
-  "dumptruck",
-  "semitrailer",
+  "tunglastebil",
   "trekkvogn",
+  "semitrailer",
   "tippbil",
   "kranbil",
   "krokbil",
   "renovasjonsbil",
-  "buss",
+  "volvo trucks",
+  "volvo truck",
+  "renault trucks",
+  "renault truck",
+  "volvo fh",
+  "volvo fm",
+  "volvo fmx",
+  "volvo fe",
+  "volvo fl",
+  "renault t",
+  "renault c",
+  "renault k",
+  "e-tech",
+  "flåtefornyelse",
+  "leasing av kjøretøy",
+  "leasing av lastebil",
+  "anskaffelse av lastebil",
+  "kjøp av lastebil",
+  "nye lastebil",
+  "ny lastebil",
+  "reservedel",
+  "reservedeler",
+  "vedlikehold",
+  "verksted",
+  "serviceavtale",
+  "flåte",
   "dieselmotor",
   "drivlinje",
-  "dekk",
-  "leasing av kjøretøy",
+  "el-lastebil",
+  "nullutslipp",
 ];
 
+/** Nøkkelord som indikerer at anbudet ikke er relevant for Trucks. */
+export const TRUCK_EXCLUDE_KEYWORDS: string[] = [
+  "buss",
+  "busser",
+  "minibuss",
+  "bybuss",
+  "skolebuss",
+  "anleggsmaskin",
+  "anleggsmaskiner",
+  "gravemaskin",
+  "gravemaskiner",
+  "hjullaster",
+  "hjullastere",
+  "personbil",
+  "personbiler",
+  "varebil",
+  "varebiler",
+  "kollektivtransport",
+  "skoleskyss",
+  "persontransport",
+  "volvo ce",
+  "volvo penta",
+  "volvo bus",
+  "byggmaskin",
+  "landbruksmaskin",
+  "traktor",
+];
+
+/** @deprecated Bruk TRUCK_KEYWORDS – beholdt for bakoverkompatibilitet. */
+export const VOLVO_KEYWORDS = TRUCK_KEYWORDS;
+
 /**
- * Et delsett av de aller mest spesifikke nøkkelordene som brukes når vi
- * gjør faktiske API-søk mot Doffin (for å begrense antall kall).
+ * Et delsett av de mest spesifikke nøkkelordene som brukes ved API-søk mot Doffin.
  */
 export const SEARCH_KEYWORDS: string[] = [
   "lastebil",
+  "tungbil",
   "tungtransport",
-  "volvo",
-  "anleggsmaskin",
-  "kjøretøy",
-  "reservedeler",
-  "verksted",
+  "trekkvogn",
+  "volvo trucks",
+  "renault trucks",
   "renovasjonsbil",
+  "kranbil",
+  "semitrailer",
+  "reservedeler",
 ];
 
-/** Relevante CPV-koder for tunge kjøretøy, transport og anleggsmaskiner. */
+/** CPV-koder for tunge lastebiler og truck-ettermarked (ikke anleggsmaskiner). */
 export const CPV_CODES: string[] = [
-  "34100000", // Motorkjøretøy
   "34130000", // Motorkjøretøy for godstransport
   "34140000", // Tunge motorkjøretøy
   "34144000", // Spesialkjøretøy
   "34144510", // Renovasjonskjøretøy
-  "43200000", // Anleggsmaskiner
-  "43210000", // Maskiner for jordflytting
-  "50110000", // Reparasjon/vedlikehold av motorkjøretøy
   "34330000", // Reservedeler til lastebiler/busser
+  "50110000", // Reparasjon/vedlikehold av motorkjøretøy
 ];
 
+const TRUCK_CPV_CODES = new Set(CPV_CODES);
+
+const TRUCK_SIGNAL_SCORES: Record<string, number> = {
+  lastebil: 10,
+  lastebiler: 10,
+  tungbil: 10,
+  tungtransport: 9,
+  tunglastebil: 10,
+  trekkvogn: 9,
+  semitrailer: 8,
+  tippbil: 8,
+  kranbil: 8,
+  krokbil: 8,
+  renovasjonsbil: 8,
+  "volvo trucks": 12,
+  "volvo truck": 12,
+  "renault trucks": 12,
+  "renault truck": 12,
+  "volvo fh": 10,
+  "volvo fm": 10,
+  "volvo fmx": 10,
+  "volvo fe": 9,
+  "volvo fl": 9,
+  "renault t": 8,
+  "renault c": 8,
+  "renault k": 8,
+  "e-tech": 8,
+  flåtefornyelse: 9,
+  "leasing av kjøretøy": 7,
+  "leasing av lastebil": 10,
+  "anskaffelse av lastebil": 10,
+  "kjøp av lastebil": 10,
+  "nye lastebil": 10,
+  "ny lastebil": 10,
+  reservedel: 5,
+  reservedeler: 5,
+  vedlikehold: 4,
+  verksted: 4,
+  serviceavtale: 4,
+  flåte: 3,
+  dieselmotor: 4,
+  drivlinje: 4,
+  "el-lastebil": 9,
+  nullutslipp: 5,
+};
+
+const PURCHASE_SIGNALS = [
+  "kjøp av",
+  "anskaffelse",
+  "innkjøp av",
+  "leveranse av",
+  "levering av",
+  "leasing",
+  "flåtefornyelse",
+  "nye lastebil",
+  "ny lastebil",
+  "erstatning av kjøretøy",
+  "utskifting av kjøretøy",
+];
+
+const TRANSPORT_ONLY_SIGNALS = [
+  "transporttjeneste",
+  "transporttjenester",
+  "transport av",
+  "renovasjonsdrift",
+  "brøyting",
+  "brøytetjeneste",
+  "rutedrift",
+  "kjøring av",
+  "avfallshenting",
+  "renovasjonskjøring",
+  "drift av transport",
+  "varetransport",
+];
+
+const VOLVO_NON_TRUCK_SIGNALS = ["volvo ce", "volvo penta", "volvo bus"];
+
+const VOLVO_BRAND_SIGNALS = [
+  "volvo trucks",
+  "volvo truck",
+  "volvo fh",
+  "volvo fm",
+  "volvo fmx",
+  "volvo fe",
+  "volvo fl",
+];
+
+const RENAULT_BRAND_SIGNALS = [
+  "renault trucks",
+  "renault truck",
+  "renault t",
+  "renault c",
+  "renault k",
+  "e-tech",
+];
+
+/** Minimum poengsum for at et anbud regnes som truck-relevant. */
+export const TRUCK_RELEVANCE_MIN_SCORE = 5;
+
+export type TruckBrand = "volvo" | "renault";
+
+export interface TruckRelevanceResult {
+  relevant: boolean;
+  score: number;
+  matchedKeywords: string[];
+  excludedKeywords: string[];
+  brandSignals: TruckBrand[];
+}
+
 export interface RegionConfig {
-  /** Visningsnavn (og verdien som lagres i `tenders.region`). */
   name: string;
-  /**
-   * Doffin location-IDer (valgfritt). Kan fylles inn dersom man kjenner
-   * de eksakte geo-IDene; brukes da som ekstra API-filter.
-   */
   locationIds: string[];
-  /**
-   * Tekststrenger (små bokstaver) som identifiserer regionen ut fra
-   * oppdragsgiver/overskrift/beskrivelse – dette er hovedmekanismen for
-   * region-deteksjon siden Doffin returnerer location som koder.
-   */
   matchers: string[];
 }
 
@@ -200,21 +337,13 @@ export const REGIONS: RegionConfig[] = [
   },
 ];
 
-/** Tillatte regionnavn (brukes til validering av filtre i API-et). */
 export const REGION_NAMES = REGIONS.map((r) => r.name);
 export type RegionName = (typeof REGION_NAMES)[number];
 
-/** Escaper spesialtegn slik at en streng kan brukes trygt i et regex. */
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/**
- * Heilords-matching: `needle` må stå som et eget ord i `haystack`. Bruker
- * unicode-ordgrenser slik at f.eks. «ski» IKKE matcher inne i «maskin» og
- * «ås» ikke matcher inne i andre ord. Brukes til region-deteksjon der
- * stedsnavn skal være presise.
- */
 function matchesWholeWord(haystack: string, needle: string): boolean {
   const re = new RegExp(
     `(?<![\\p{L}\\p{N}])${escapeRegExp(needle)}(?![\\p{L}\\p{N}])`,
@@ -223,12 +352,6 @@ function matchesWholeWord(haystack: string, needle: string): boolean {
   return re.test(haystack);
 }
 
-/**
- * Stamme-/prefiksmatching: `needle` må starte et ord i `haystack`, men kan
- * etterfølges av bøyningsendelser. Slik matcher «lastebil» også «lastebilen»
- * og «lastebiler», mens «ski» fortsatt ikke matcher «maskin» (ulik ordstart).
- * Brukes til Volvo-relevans der norske bøyninger er vanlige.
- */
 export function matchesWordPrefix(haystack: string, needle: string): boolean {
   const re = new RegExp(
     `(?<![\\p{L}\\p{N}])${escapeRegExp(needle)}`,
@@ -237,21 +360,147 @@ export function matchesWordPrefix(haystack: string, needle: string): boolean {
   return re.test(haystack);
 }
 
-/**
- * Avgjør om en gitt tekst er relevant for Volvo basert på nøkkelordene.
- * Returnerer hvilke nøkkelord som traff (tom liste = ikke relevant).
- */
-export function matchVolvoKeywords(text: string): string[] {
-  const haystack = text.toLowerCase();
-  return VOLVO_KEYWORDS.filter((kw) =>
-    matchesWordPrefix(haystack, kw.toLowerCase()),
+function hasAnySignal(haystack: string, signals: string[]): boolean {
+  return signals.some((signal) => matchesWordPrefix(haystack, signal));
+}
+
+function scoreCpv(cpvCodes: string[] | undefined): number {
+  if (!cpvCodes?.length) return 0;
+  const hits = cpvCodes.filter((code) => TRUCK_CPV_CODES.has(code)).length;
+  return hits > 0 ? 6 + hits * 2 : 0;
+}
+
+function hasTruckContext(haystack: string, matchedKeywords: string[]): boolean {
+  const strongTruckSignals = [
+    "lastebil",
+    "lastebiler",
+    "tungbil",
+    "tungtransport",
+    "tunglastebil",
+    "trekkvogn",
+    "semitrailer",
+    "tippbil",
+    "kranbil",
+    "krokbil",
+    "renovasjonsbil",
+    "volvo trucks",
+    "renault trucks",
+    "volvo fh",
+    "volvo fm",
+    "volvo fmx",
+    "el-lastebil",
+  ];
+  return (
+    matchedKeywords.some((kw) => strongTruckSignals.includes(kw)) ||
+    hasAnySignal(haystack, strongTruckSignals)
   );
 }
 
 /**
- * Forsøker å bestemme hvilken region en tekst (oppdragsgiver + overskrift +
- * beskrivelse) hører til. Returnerer regionnavnet eller null hvis ingen treff.
+ * Avgjør om et anbud er relevant for Volvo Trucks (tunglastebil, Volvo/Renault).
  */
+export function assessTruckRelevance(
+  text: string,
+  cpvCodes?: string[],
+): TruckRelevanceResult {
+  const haystack = text.toLowerCase();
+
+  const matchedKeywords = TRUCK_KEYWORDS.filter((kw) =>
+    matchesWordPrefix(haystack, kw.toLowerCase()),
+  );
+
+  const excludedKeywords = TRUCK_EXCLUDE_KEYWORDS.filter((kw) =>
+    matchesWordPrefix(haystack, kw.toLowerCase()),
+  );
+
+  let score = matchedKeywords.reduce(
+    (sum, kw) => sum + (TRUCK_SIGNAL_SCORES[kw] ?? 4),
+    0,
+  );
+  score += scoreCpv(cpvCodes);
+
+  const truckContext = hasTruckContext(haystack, matchedKeywords);
+  const hasPurchaseSignal = hasAnySignal(haystack, PURCHASE_SIGNALS);
+  const hasTransportOnlySignal = hasAnySignal(haystack, TRANSPORT_ONLY_SIGNALS);
+  const hasVolvoNonTruck = hasAnySignal(haystack, VOLVO_NON_TRUCK_SIGNALS);
+
+  if (hasVolvoNonTruck && !truckContext) {
+    score -= 12;
+  }
+
+  if (excludedKeywords.length > 0 && !truckContext) {
+    score -= 15;
+  }
+
+  if (hasTransportOnlySignal && !hasPurchaseSignal && !truckContext) {
+    score -= 10;
+  }
+
+  if (
+    matchesWordPrefix(haystack, "volvo") &&
+    !hasAnySignal(haystack, VOLVO_BRAND_SIGNALS) &&
+    !truckContext
+  ) {
+    score += 1;
+  }
+
+  if (
+    matchesWordPrefix(haystack, "renovasjon") &&
+    !matchesWordPrefix(haystack, "renovasjonsbil") &&
+    !matchesWordPrefix(haystack, "renovasjonskjøretøy") &&
+    !truckContext
+  ) {
+    score -= 6;
+  }
+
+  const brandSignals = detectTruckBrandSignals(text);
+
+  const relevant = score >= TRUCK_RELEVANCE_MIN_SCORE;
+
+  return {
+    relevant,
+    score,
+    matchedKeywords,
+    excludedKeywords,
+    brandSignals,
+  };
+}
+
+export function isTruckRelevant(text: string, cpvCodes?: string[]): boolean {
+  return assessTruckRelevance(text, cpvCodes).relevant;
+}
+
+export function matchTruckKeywords(text: string): string[] {
+  return assessTruckRelevance(text).matchedKeywords;
+}
+
+/** @deprecated Bruk matchTruckKeywords. */
+export function matchVolvoKeywords(text: string): string[] {
+  return matchTruckKeywords(text);
+}
+
+/** Finn merke-signaler (Volvo Trucks / Renault Trucks) i tekst. */
+export function detectTruckBrandSignals(text: string): TruckBrand[] {
+  const haystack = text.toLowerCase();
+  const brands = new Set<TruckBrand>();
+
+  if (
+    hasAnySignal(haystack, VOLVO_BRAND_SIGNALS) ||
+    (matchesWordPrefix(haystack, "volvo") && !hasAnySignal(haystack, VOLVO_NON_TRUCK_SIGNALS))
+  ) {
+    brands.add("volvo");
+  }
+
+  if (
+    hasAnySignal(haystack, RENAULT_BRAND_SIGNALS) ||
+    matchesWordPrefix(haystack, "renault")
+  ) {
+    brands.add("renault");
+  }
+
+  return Array.from(brands);
+}
+
 export function detectRegion(text: string): RegionName | null {
   const haystack = text.toLowerCase();
   for (const region of REGIONS) {

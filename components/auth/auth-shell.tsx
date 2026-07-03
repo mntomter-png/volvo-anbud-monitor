@@ -17,7 +17,7 @@ export function AuthShell({
           </div>
           <div>
             <Link href="/" className="text-xl font-bold tracking-tight hover:opacity-90">
-              Anbud-monitor · Volvo Norge
+              Anbud-monitor · Volvo Trucks
             </Link>
             {subtitle && (
               <p className="text-sm text-muted-foreground">{subtitle}</p>

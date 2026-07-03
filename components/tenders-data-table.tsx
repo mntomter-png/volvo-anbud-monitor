@@ -55,6 +55,7 @@ import {
   NoticeKindBadge,
   PipelineStatusSelect,
   TenderTypeBadge,
+  TruckBrandBadges,
 } from "@/components/tender-pipeline-cells";
 
 interface TendersResponse {
@@ -152,7 +153,9 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [selectedRegions, setSelectedRegions] = React.useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = React.useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = React.useState<string[]>([
+    "direct_purchase",
+  ]);
   const [selectedStatuses, setSelectedStatuses] = React.useState<string[]>([]);
   const [selectedKinds, setSelectedKinds] = React.useState<string[]>([]);
   const [electricOnly, setElectricOnly] = React.useState(false);
@@ -253,7 +256,7 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
   function resetFilters() {
     setSearch("");
     setSelectedRegions([]);
-    setSelectedTypes([]);
+    setSelectedTypes(["direct_purchase"]);
     setSelectedStatuses([]);
     setSelectedKinds([]);
     setElectricOnly(false);
@@ -321,6 +324,18 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
         cell: ({ row }) => (
           <TenderTypeBadge type={row.original.tender_type ?? "unknown"} />
         ),
+      },
+      {
+        id: "brand",
+        header: "Merke",
+        cell: ({ row }) => (
+          <TruckBrandBadges
+            text={[row.original.title, row.original.buyer, row.original.winner_name]
+              .filter(Boolean)
+              .join(" ")}
+          />
+        ),
+        enableSorting: false,
       },
       {
         accessorKey: "is_electric",

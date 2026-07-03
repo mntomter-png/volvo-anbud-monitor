@@ -82,7 +82,7 @@ export function renderTenderEmail(tenders: TenderInsert[]): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nye anbud – Volvo Norge</title>
+  <title>Nye anbud – Volvo Trucks</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f6fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:24px 0;">
@@ -92,7 +92,7 @@ export function renderTenderEmail(tenders: TenderInsert[]): string {
           <tr>
             <td style="background:${ACCENT};padding:28px 32px;">
               <div style="color:#ffffff;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.8;">Anbud-monitor</div>
-              <div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:4px;">Volvo Norge – Lastebiler</div>
+              <div style="color:#ffffff;font-size:22px;font-weight:700;margin-top:4px;">Volvo Trucks · Renault Trucks</div>
             </td>
           </tr>
           <tr>
@@ -160,7 +160,7 @@ export async function sendNotificationEmail(
   }
 
   const resend = new Resend(apiKey);
-  const subject = `${tenders.length} nye anbud relevante for Volvo`;
+  const subject = `${tenders.length} nye truck-anbud (Volvo/Renault)`;
 
   const { data, error } = await resend.emails.send({
     from,

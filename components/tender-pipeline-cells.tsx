@@ -21,6 +21,8 @@ import {
   type TenderType,
 } from "@/lib/pipeline";
 import type { TenderRow } from "@/lib/types";
+import type { TruckBrand } from "@/lib/keywords";
+import { detectTruckBrandSignals } from "@/lib/keywords";
 
 const TENDER_TYPE_VARIANTS: Record<
   TenderType,
@@ -68,6 +70,27 @@ export function NoticeKindBadge({ kind }: { kind: string }) {
     >
       {kind === "award" ? "Tildeling" : "Konkurranse"}
     </Badge>
+  );
+}
+
+const BRAND_LABELS: Record<TruckBrand, string> = {
+  volvo: "Volvo",
+  renault: "Renault",
+};
+
+export function TruckBrandBadges({ text }: { text: string }) {
+  const brands = detectTruckBrandSignals(text);
+  if (brands.length === 0) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  return (
+    <div className="flex flex-wrap gap-1">
+      {brands.map((brand) => (
+        <Badge key={brand} variant="outline" className="whitespace-nowrap text-[10px]">
+          {BRAND_LABELS[brand]}
+        </Badge>
+      ))}
+    </div>
   );
 }
 

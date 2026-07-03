@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Anbud-monitor · Volvo Norge",
+  title: "Anbud-monitor · Volvo Trucks",
   description:
-    "Overvåk offentlige anbud relevante for Volvo lastebiler, tungtransport, service og anleggsmaskiner i Oslo, Akershus, Buskerud og Innlandet.",
+    "Overvåk offentlige anbud for tunglastebil (Volvo og Renault Trucks) i Oslo, Akershus, Buskerud og Innlandet.",
 };
 
 export default function RootLayout({

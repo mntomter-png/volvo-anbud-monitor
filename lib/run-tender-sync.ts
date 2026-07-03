@@ -6,7 +6,7 @@
 import { DoffinClient, mapNoticeToTender } from "@/lib/doffin";
 import { searchAllNotices } from "@/lib/doffin-paginated";
 import { createServerSupabase, TENDERS_TABLE } from "@/lib/supabase";
-import { CPV_CODES, SEARCH_KEYWORDS, matchVolvoKeywords } from "@/lib/keywords";
+import { CPV_CODES, SEARCH_KEYWORDS, isTruckRelevant } from "@/lib/keywords";
 import { sendNotificationEmail } from "@/lib/email";
 import { backfillTenderClassification } from "@/lib/backfill-classification";
 import type { DoffinNotice, DoffinSearchParams, TenderInsert } from "@/lib/types";
@@ -48,9 +48,9 @@ function issueDateFromYearsAgo(years: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-function isVolvoRelevantInRegion(notice: DoffinNotice): boolean {
+function isTruckRelevantInRegion(notice: DoffinNotice): boolean {
   const text = `${notice.heading ?? ""} ${notice.description ?? ""}`;
-  if (matchVolvoKeywords(text).length === 0) return false;
+  if (!isTruckRelevant(text, notice.cpvCodes)) return false;
   const tender = mapNoticeToTender(notice);
   return tender.region !== null;
 }
@@ -153,16 +153,16 @@ export async function runTenderSync(): Promise<TenderSyncResult> {
     );
 
     const relevantCompetitions: TenderInsert[] = allCompetitionNotices
-      .filter(isVolvoRelevantInRegion)
+      .filter(isTruckRelevantInRegion)
       .map(mapNoticeToTender);
 
     const relevantAwards: TenderInsert[] = allAwardNotices
-      .filter(isVolvoRelevantInRegion)
+      .filter(isTruckRelevantInRegion)
       .map(mapNoticeToTender);
 
     const relevant = [...relevantCompetitions, ...relevantAwards];
     log(
-      `${relevantCompetitions.length} konkurranser + ${relevantAwards.length} tildelinger er Volvo-relevante i målregionene`,
+      `${relevantCompetitions.length} konkurranser + ${relevantAwards.length} tildelinger er truck-relevante i målregionene`,
     );
 
     if (relevant.length === 0) {

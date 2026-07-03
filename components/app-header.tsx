@@ -35,10 +35,10 @@ export function AppHeader({
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">
-              Anbud-monitor · Volvo Norge
+              Anbud-monitor · Volvo Trucks
             </h1>
             <p className="text-sm text-muted-foreground">
-              Offentlige anbud for lastebiler og tungtransport
+              Tunglastebil – Volvo og Renault Trucks
             </p>
           </div>
         </div>

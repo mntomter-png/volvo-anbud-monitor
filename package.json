@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:migrate": "node scripts/run-migration.mjs",
     "db:bootstrap-admin": "node scripts/bootstrap-admin.mjs",
+    "db:reconcile-trucks": "npx tsx scripts/reconcile-truck-tenders.ts",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
