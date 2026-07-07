@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, MailPlus, Trash2, UserPlus } from "lucide-react";
+import { Loader2, KeyRound, MailPlus, Trash2, UserPlus } from "lucide-react";
 
 import { USER_ROLE_LABELS, type UserRole } from "@/lib/auth/roles";
 import type { ProfileRow } from "@/lib/types";
@@ -46,6 +46,7 @@ export function UsersAdminPanel() {
   const [fullName, setFullName] = React.useState("");
   const [role, setRole] = React.useState<UserRole>("user");
   const [inviting, setInviting] = React.useState(false);
+  const [resettingUserId, setResettingUserId] = React.useState<string | null>(null);
 
   const fetchUsers = React.useCallback(async () => {
     setLoading(true);
@@ -119,6 +120,35 @@ export function UsersAdminPanel() {
     }
     setBanner(`Brukeren ${userEmail} er slettet.`);
     await fetchUsers();
+  }
+
+  async function handleResetPassword(userId: string, userEmail: string) {
+    if (
+      !window.confirm(
+        `Send tilbakestillingslenke til ${userEmail}? Brukeren får e-post for å velge nytt passord.`,
+      )
+    ) {
+      return;
+    }
+
+    setResettingUserId(userId);
+    setError(null);
+    setBanner(null);
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
+        method: "POST",
+      });
+      const json = (await res.json()) as { error?: string; message?: string };
+      if (!res.ok) throw new Error(json.error ?? `Feil ${res.status}`);
+      setBanner(json.message ?? "Tilbakestillingslenke sendt.");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Kunne ikke sende tilbakestillingslenke",
+      );
+    } finally {
+      setResettingUserId(null);
+    }
   }
 
   return (
@@ -258,6 +288,20 @@ export function UsersAdminPanel() {
                               <SelectItem value="admin">Administrator</SelectItem>
                             </SelectContent>
                           </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleResetPassword(user.id, user.email)}
+                            disabled={resettingUserId === user.id}
+                            aria-label={`Tilbakestill passord for ${user.email}`}
+                            title="Send tilbakestillingslenke"
+                          >
+                            {resettingUserId === user.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <KeyRound className="size-4" />
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
