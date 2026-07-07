@@ -36,16 +36,18 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   const siteUrl = getSiteUrl();
 
   try {
-    const { emailSent } = await resetUserPassword({
+    const { emailSent, actionLink } = await resetUserPassword({
       email: profile.email,
       redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     });
 
     return NextResponse.json({
       ok: true,
+      emailSent,
+      actionLink,
       message: emailSent
-        ? `Tilbakestillingslenke sendt til ${profile.email}.`
-        : `Lenke generert for ${profile.email}, men e-post kunne ikke sendes (sjekk RESEND_API_KEY).`,
+        ? `Tilbakestillingslenke sendt til ${profile.email}. Kopier lenken under hvis e-posten ikke kommer frem.`
+        : `Lenke generert for ${profile.email}, men e-post kunne ikke sendes. Kopier lenken under og send den manuelt.`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ukjent feil";

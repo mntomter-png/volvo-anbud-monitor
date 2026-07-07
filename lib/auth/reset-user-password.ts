@@ -9,6 +9,7 @@ export interface ResetUserPasswordOptions {
 
 export interface ResetUserPasswordResult {
   emailSent: boolean;
+  actionLink: string;
 }
 
 async function sendResetEmail(to: string, actionLink: string) {
@@ -61,5 +62,5 @@ export async function resetUserPassword(
   }
 
   const emailSent = await sendResetEmail(options.email, actionLink);
-  return { emailSent };
+  return { emailSent, actionLink };
 }
