@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { isLastAdmin } from "@/lib/auth/admin-guards";
 import { requireAdminProfile } from "@/lib/auth/session";
 import { isUserRole } from "@/lib/auth/roles";
+import { apiError } from "@/lib/security/api-error";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,6 +41,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const supabase = await createClient();
+
+  if (updates.role === "user" && (await isLastAdmin(supabase, id))) {
+    return NextResponse.json(
+      { error: "Kan ikke fjerne siste administrator" },
+      { status: 400 },
+    );
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .update(updates)
@@ -47,9 +57,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json(
-      { error: "Kunne ikke oppdatere bruker", details: error.message },
-      { status: 500 },
+    return apiError(
+      "Kunne ikke oppdatere bruker",
+      500,
+      error.message,
+      "PATCH /api/admin/users/[id]",
     );
   }
 
@@ -69,10 +81,23 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     );
   }
 
+  const supabase = await createClient();
+  if (await isLastAdmin(supabase, id)) {
+    return NextResponse.json(
+      { error: "Kan ikke slette siste administrator" },
+      { status: 400 },
+    );
+  }
+
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return apiError(
+      "Kunne ikke slette bruker",
+      400,
+      error.message,
+      "DELETE /api/admin/users/[id]",
+    );
   }
 
   return NextResponse.json({ ok: true });

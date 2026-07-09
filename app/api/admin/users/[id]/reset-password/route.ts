@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { resetUserPassword } from "@/lib/auth/reset-user-password";
 import { getSiteUrl, requireAdminProfile } from "@/lib/auth/session";
+import { apiError } from "@/lib/security/api-error";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -23,9 +24,11 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json(
-      { error: "Kunne ikke hente bruker", details: error.message },
-      { status: 500 },
+    return apiError(
+      "Kunne ikke hente bruker",
+      500,
+      error.message,
+      "POST /api/admin/users/[id]/reset-password",
     );
   }
 
@@ -36,7 +39,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   const siteUrl = getSiteUrl();
 
   try {
-    const { emailSent, actionLink } = await resetUserPassword({
+    const { emailSent } = await resetUserPassword({
       email: profile.email,
       redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     });
@@ -44,13 +47,17 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({
       ok: true,
       emailSent,
-      actionLink,
       message: emailSent
-        ? `Tilbakestillingslenke sendt til ${profile.email}. Kopier lenken under hvis e-posten ikke kommer frem.`
-        : `Lenke generert for ${profile.email}, men e-post kunne ikke sendes. Kopier lenken under og send den manuelt.`,
+        ? `Tilbakestillingslenke sendt til ${profile.email}.`
+        : `Kunne ikke sende e-post til ${profile.email}. Sjekk Resend-oppsett og prøv igjen.`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ukjent feil";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(
+      "Kunne ikke sende tilbakestillingslenke",
+      400,
+      message,
+      "POST /api/admin/users/[id]/reset-password",
+    );
   }
 }

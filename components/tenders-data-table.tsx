@@ -21,7 +21,7 @@ import {
   Truck,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, isSafeExternalUrl } from "@/lib/utils";
 import { formatCurrency, formatDate, daysUntil, monthsUntil } from "@/lib/format";
 import {
   NOTICE_KINDS,
@@ -144,7 +144,13 @@ function ContractEndCell({ value }: { value: string | null }) {
   );
 }
 
-export function TendersDataTable({ regions }: { regions: string[] }) {
+export function TendersDataTable({
+  regions,
+  isAdmin = false,
+}: {
+  regions: string[];
+  isAdmin?: boolean;
+}) {
   const [rows, setRows] = React.useState<TenderRow[]>([]);
   const [count, setCount] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -297,19 +303,28 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
       {
         accessorKey: "title",
         header: "Tittel",
-        cell: ({ row }) => (
-          <a
-            href={row.original.url ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group inline-flex max-w-[420px] items-start gap-1.5 font-medium text-primary"
-          >
-            <span className="line-clamp-2 group-hover:underline">
+        cell: ({ row }) => {
+          const href = isSafeExternalUrl(row.original.url)
+            ? row.original.url!
+            : undefined;
+          return href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex max-w-[420px] items-start gap-1.5 font-medium text-primary"
+            >
+              <span className="line-clamp-2 group-hover:underline">
+                {row.original.title ?? "Uten tittel"}
+              </span>
+              <ExternalLink className="mt-0.5 size-3.5 shrink-0 opacity-60" />
+            </a>
+          ) : (
+            <span className="line-clamp-2 max-w-[420px] font-medium">
               {row.original.title ?? "Uten tittel"}
             </span>
-            <ExternalLink className="mt-0.5 size-3.5 shrink-0 opacity-60" />
-          </a>
-        ),
+          );
+        },
       },
       {
         accessorKey: "notice_kind",
@@ -560,14 +575,16 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
           </Button>
         </div>
 
-        <Button onClick={handleFetchNew} disabled={refreshing}>
-          {refreshing ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <RefreshCw className="size-4" />
-          )}
-          Hent nye anbud nå
-        </Button>
+        {isAdmin && (
+          <Button onClick={handleFetchNew} disabled={refreshing}>
+            {refreshing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
+            Hent nye anbud nå
+          </Button>
+        )}
       </div>
 
       {/* Statusbanner */}
@@ -650,7 +667,9 @@ export function TendersDataTable({ regions }: { regions: string[] }) {
                     <Truck className="size-8 opacity-40" />
                     <p className="font-medium">Ingen anbud funnet</p>
                     <p className="text-sm">
-                      Juster filtrene eller trykk «Hent nye anbud nå».
+                      {isAdmin
+                        ? "Juster filtrene eller trykk «Hent nye anbud nå»."
+                        : "Juster filtrene eller vent på neste daglige synkronisering."}
                     </p>
                   </div>
                 </TableCell>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,7 +40,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       return;
     }
 
-    window.location.href = nextPath || "/dashboard";
+    window.location.href = safeNextPath(nextPath);
   }
 
   return (

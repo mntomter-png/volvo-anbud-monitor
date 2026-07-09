@@ -8,11 +8,15 @@ export const maxDuration = 60;
 
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[notifications] CRON_SECRET mangler – avviser forespørsel");
+      return false;
+    }
+    return true;
+  }
   const auth = request.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return true;
-  if (request.nextUrl.searchParams.get("secret") === secret) return true;
-  return false;
+  return auth === `Bearer ${secret}`;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { safeNextPath } from "@/lib/utils";
 
 export const metadata = {
   title: "Logg inn – Anbud-monitor Volvo Norge",
@@ -20,7 +21,7 @@ export default async function LoginPage({
             Innloggingslenken er ugyldig eller utløpt. Prøv igjen.
           </p>
         )}
-        <LoginForm nextPath={params.next} />
+        <LoginForm nextPath={safeNextPath(params.next)} />
       </div>
     </AuthShell>
   );

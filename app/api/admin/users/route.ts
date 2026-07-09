@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSiteUrl, requireAdminProfile } from "@/lib/auth/session";
 import { inviteUser } from "@/lib/auth/invite-user";
 import { isUserRole } from "@/lib/auth/roles";
+import { apiError } from "@/lib/security/api-error";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -20,9 +21,11 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json(
-      { error: "Kunne ikke hente brukere", details: error.message },
-      { status: 500 },
+    return apiError(
+      "Kunne ikke hente brukere",
+      500,
+      error.message,
+      "GET /api/admin/users",
     );
   }
 
@@ -67,6 +70,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ukjent feil";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError("Kunne ikke invitere bruker", 400, message, "POST /api/admin/users");
   }
 }

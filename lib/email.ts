@@ -8,6 +8,7 @@ import { Resend } from "resend";
 
 import type { TenderInsert } from "@/lib/types";
 import { NOTICE_KIND_LABELS, type NoticeKind } from "@/lib/notice-kind";
+import { isSafeExternalUrl } from "@/lib/utils";
 
 const BRAND = "#1c4b9b"; // Volvo-blå
 const ACCENT = "#0b2a52";
@@ -47,7 +48,7 @@ export function renderTenderEmail(tenders: TenderInsert[]): string {
       const title = escapeHtml(t.title ?? "Uten tittel");
       const buyer = escapeHtml(t.buyer ?? "Ukjent oppdragsgiver");
       const region = escapeHtml(t.region ?? "—");
-      const url = t.url ?? "https://www.doffin.no";
+      const url = isSafeExternalUrl(t.url) ? t.url! : "https://www.doffin.no";
       const kind = t.notice_kind ?? "competition";
       const kindLabel = NOTICE_KIND_LABELS[kind as NoticeKind] ?? "Konkurranse";
       const winner =

@@ -1,7 +1,29 @@
 -- ───────────────────────────────────────────────────────────────────────────
--- Anbud-monitor · Volvo Norge – databaseskjema for Supabase/PostgreSQL
--- Kjør dette i Supabase SQL Editor (eller via `supabase db push`).
+-- Anbud-monitor · Volvo Norge – databaseskjema (referanse)
+--
+-- MERK: Kilde til sannhet er filene i supabase/migrations/.
+-- Kjør migrasjoner med: npm run db:migrate -- supabase/migrations/<fil>.sql
 -- ───────────────────────────────────────────────────────────────────────────
+
+-- tenders: offentlige anbud fra Doffin (se 20260626000000_init_tenders.sql)
+-- Pipeline-felter: 20260627100000_pipeline_fields.sql
+-- Tildelinger: 20260627200000_award_contracts.sql
+
+-- profiles + auth RLS: 20260701000000_profiles_auth.sql
+-- Sikkerhetsforsterkning (rolle-trigger, app_settings RLS): 20260709100000_security_hardening.sql
+
+-- RLS-oppsummering etter alle migrasjoner:
+--
+-- tenders:
+--   SELECT / UPDATE: authenticated (alle innloggede brukere)
+--   INSERT / DELETE: kun service role (cron/sync)
+--
+-- profiles:
+--   SELECT: egen rad eller admin
+--   UPDATE: egen rad eller admin (rolleendring blokkeres for ikke-admins via trigger)
+--
+-- app_settings:
+--   RLS aktivert, ingen policies – kun service role har tilgang
 
 create table if not exists public.tenders (
   id              uuid primary key default gen_random_uuid(),
@@ -30,35 +52,7 @@ create table if not exists public.tenders (
   created_at      timestamptz not null default now()
 );
 
--- Indekser for raske filtre/sortering i dashbordet.
-create index if not exists tenders_region_idx       on public.tenders (region);
-create index if not exists tenders_published_at_idx  on public.tenders (published_at desc);
-create index if not exists tenders_deadline_idx      on public.tenders (deadline);
-create index if not exists tenders_created_at_idx    on public.tenders (created_at desc);
-create index if not exists tenders_tender_type_idx   on public.tenders (tender_type);
-create index if not exists tenders_pipeline_status_idx on public.tenders (pipeline_status);
-create index if not exists tenders_is_electric_idx   on public.tenders (is_electric);
-create index if not exists tenders_assignee_idx      on public.tenders (assignee);
-create index if not exists tenders_notice_kind_idx   on public.tenders (notice_kind);
-create index if not exists tenders_contract_end_date_idx on public.tenders (contract_end_date);
-
--- Row Level Security
 alter table public.tenders enable row level security;
 
--- Lesetilgang for anon (dashbordet leser med anon-nøkkelen).
-drop policy if exists "tenders_read_anon" on public.tenders;
-create policy "tenders_read_anon"
-  on public.tenders
-  for select
-  to anon, authenticated
-  using (true);
-
--- MERK: Skriving (insert/upsert) gjøres fra server med SUPABASE_SERVICE_ROLE_KEY,
--- som omgår RLS. Hvis du heller vil skrive med anon-nøkkelen, legg til en
--- insert-policy under (mindre sikkert – anbefales ikke i produksjon):
---
--- create policy "tenders_insert_anon"
---   on public.tenders
---   for insert
---   to anon
---   with check (true);
+-- Lesing og oppdatering krever innlogging (ikke anon).
+-- Se migrasjoner for gjeldende policies.

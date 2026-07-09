@@ -6,6 +6,8 @@ import { TENDERS_TABLE } from "@/lib/supabase";
 import { REGION_NAMES } from "@/lib/keywords";
 import { isPipelineStatus, isTenderType } from "@/lib/pipeline";
 import { EXPIRING_SOON_MONTHS, isNoticeKind } from "@/lib/notice-kind";
+import { apiError } from "@/lib/security/api-error";
+import { sanitizePostgrestSearch } from "@/lib/security/search";
 import type { TenderRow } from "@/lib/types";
 
 // Alltid dynamisk – vi leser ferske data fra databasen ved hvert kall.
@@ -97,8 +99,10 @@ export async function GET(request: NextRequest) {
 
     // Fritekstsøk i tittel eller oppdragsgiver.
     if (search) {
-      const safe = search.replace(/[%,]/g, " ");
-      query = query.or(`title.ilike.%${safe}%,buyer.ilike.%${safe}%`);
+      const safe = sanitizePostgrestSearch(search);
+      if (safe) {
+        query = query.or(`title.ilike.%${safe}%,buyer.ilike.%${safe}%`);
+      }
     }
 
     // Dato-range på publiseringsdato.
@@ -146,10 +150,11 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[GET /api/tenders] Supabase-feil:", error.message);
-      return NextResponse.json(
-        { error: "Kunne ikke hente anbud fra databasen", details: error.message },
-        { status: 500 },
+      return apiError(
+        "Kunne ikke hente anbud fra databasen",
+        500,
+        error.message,
+        "GET /api/tenders",
       );
     }
 
@@ -161,10 +166,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ukjent feil";
-    console.error("[GET /api/tenders] Uventet feil:", message);
-    return NextResponse.json(
-      { error: "Uventet serverfeil", details: message },
-      { status: 500 },
-    );
+    return apiError("Uventet serverfeil", 500, message, "GET /api/tenders");
   }
 }

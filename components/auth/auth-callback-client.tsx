@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/utils";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +28,7 @@ export function AuthCallbackClient() {
 
   React.useEffect(() => {
     const supabase = createClient();
-    const next = searchParams.get("next") ?? "/dashboard";
+    const next = safeNextPath(searchParams.get("next"));
     const authError = searchParams.get("error_description") ?? searchParams.get("error");
 
     if (authError) {

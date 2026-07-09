@@ -4,6 +4,7 @@ import { requireAuthProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { TENDERS_TABLE } from "@/lib/supabase";
 import { isPipelineStatus } from "@/lib/pipeline";
+import { apiError } from "@/lib/security/api-error";
 import type { TenderPipelineUpdate, TenderRow } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -58,19 +59,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       .single();
 
     if (error) {
-      console.error("[PATCH /api/tenders/[id]] Supabase-feil:", error.message);
-      return NextResponse.json(
-        { error: "Kunne ikke oppdatere anbud", details: error.message },
-        { status: 500 },
+      return apiError(
+        "Kunne ikke oppdatere anbud",
+        500,
+        error.message,
+        "PATCH /api/tenders/[id]",
       );
     }
 
     return NextResponse.json({ data: data as TenderRow });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Ukjent feil";
-    return NextResponse.json(
-      { error: "Uventet serverfeil", details: message },
-      { status: 500 },
-    );
+    return apiError("Uventet serverfeil", 500, message, "PATCH /api/tenders/[id]");
   }
 }

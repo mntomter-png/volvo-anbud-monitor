@@ -39,6 +39,12 @@ export function createBrowserSupabase(): TypedSupabaseClient {
  * service-role-nøkkelen hvis den finnes (omgår RLS), ellers anon-nøkkelen.
  */
 export function createServerSupabase(): TypedSupabaseClient {
+  if (process.env.NODE_ENV === "production" && !supabaseServiceKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY er påkrevd i produksjon.",
+    );
+  }
+
   const key = supabaseServiceKey ?? supabaseAnonKey;
   return createClient<Database>(
     assertEnv(supabaseUrl, "NEXT_PUBLIC_SUPABASE_URL"),

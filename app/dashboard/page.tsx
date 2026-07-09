@@ -109,7 +109,10 @@ export default async function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <TendersDataTable regions={REGION_NAMES} />
+            <TendersDataTable
+              regions={REGION_NAMES}
+              isAdmin={profile?.role === "admin"}
+            />
           </CardContent>
         </Card>
       </main>
