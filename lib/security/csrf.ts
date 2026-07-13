@@ -30,9 +30,21 @@ export function verifyCsrfOrigin(request: NextRequest): boolean {
   const method = request.method.toUpperCase();
   if (!MUTATION_METHODS.has(method)) return true;
 
-  if (request.nextUrl.pathname === "/api/notifications") return true;
+  const pathname = request.nextUrl.pathname;
+  if (pathname === "/api/notifications") return true;
+  // Offentlig, rate-begrenset endepunkt uten session.
+  if (pathname === "/api/auth/forgot-password") return true;
 
   const allowedOrigins = getAllowedOrigins();
+
+  // Stol på forespørsler mot samme host (viktig på Netlify der env-URL kan avvike).
+  const host = request.headers.get("host");
+  if (host) {
+    const proto =
+      request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
+    allowedOrigins.add(`${proto}://${host}`);
+  }
+
   const origin = request.headers.get("origin");
 
   if (origin) {
