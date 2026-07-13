@@ -34,53 +34,62 @@ export function UpdatePasswordForm({
 
   React.useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
 
     async function establishSession() {
       const params = new URLSearchParams(window.location.search);
       const code = params.get("code");
+
       if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (!error) {
-          setReady(true);
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+        if (exchangeError) {
+          setError(exchangeError.message);
           return;
         }
-      }
-
-      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const accessToken = hash.get("access_token");
-      const refreshToken = hash.get("refresh_token");
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (!error) {
-          setReady(true);
-          return;
+      } else {
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const accessToken = hash.get("access_token");
+        const refreshToken = hash.get("refresh_token");
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (cancelled) return;
+          if (sessionError) {
+            setError(sessionError.message);
+            return;
+          }
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search,
+          );
         }
       }
 
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session) setReady(true);
-    }
+      if (cancelled) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (
-        event === "PASSWORD_RECOVERY" ||
-        event === "SIGNED_IN" ||
-        event === "INITIAL_SESSION"
-      ) {
+      if (session) {
         setReady(true);
+        return;
       }
-    });
+
+      setError(
+        "Lenken er ugyldig eller utløpt. Be om en ny tilbakestillingslenke.",
+      );
+    }
 
     void establishSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -97,6 +106,18 @@ export function UpdatePasswordForm({
     setLoading(true);
     setError(null);
     const supabase = createClient();
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      setLoading(false);
+      setError(
+        "Innloggingssesjonen mangler. Åpne tilbakestillingslenken på nytt, eller be om en ny lenke.",
+      );
+      return;
+    }
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     setLoading(false);
@@ -131,7 +152,16 @@ export function UpdatePasswordForm({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        {!ready ? (
+        {error && !ready ? (
+          <div className="flex flex-col gap-3">
+            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/auth/forgot-password">Be om ny lenke</Link>
+            </Button>
+          </div>
+        ) : !ready ? (
           <p className="text-sm text-muted-foreground">Validerer lenke …</p>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import { Loader2, MailCheck } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,16 +26,15 @@ export function ForgotPasswordForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/reset-password`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-      email.trim(),
-      { redirectTo },
-    );
-
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+    const json = (await res.json()) as { error?: string };
     setLoading(false);
-    if (resetError) {
-      setError(resetError.message);
+    if (!res.ok) {
+      setError(json.error ?? "Kunne ikke sende tilbakestillingslenke");
       return;
     }
     setSent(true);
