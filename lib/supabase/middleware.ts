@@ -9,6 +9,8 @@ const PUBLIC_PATHS = [
   "/auth/forgot-password",
   "/auth/reset-password",
   "/auth/set-password",
+  // Offentlig API for «Glemt passord» (ingen innlogging nødvendig)
+  "/api/auth/forgot-password",
 ];
 
 function isPublicPath(pathname: string): boolean {
