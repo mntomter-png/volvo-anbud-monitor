@@ -33,7 +33,8 @@ export function verifyCsrfOrigin(request: NextRequest): boolean {
   const pathname = request.nextUrl.pathname;
   if (pathname === "/api/notifications") return true;
   // Offentlig, rate-begrenset endepunkt uten session.
-  if (pathname === "/api/auth/forgot-password") return true;
+  // Tillater både med og uten trailing slash.
+  if (pathname.startsWith("/api/auth/forgot-password")) return true;
 
   const allowedOrigins = getAllowedOrigins();
 
