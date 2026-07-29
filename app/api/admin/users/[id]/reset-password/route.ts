@@ -37,11 +37,14 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   }
 
   const siteUrl = getSiteUrl();
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(
+    "/auth/reset-password",
+  )}`;
 
   try {
     const { emailSent, actionLink } = await resetUserPassword({
       email: profile.email,
-      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
+      redirectTo,
     });
 
     return NextResponse.json({

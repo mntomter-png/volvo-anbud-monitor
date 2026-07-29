@@ -21,11 +21,14 @@ export async function POST(request: NextRequest) {
   }
 
   const siteUrl = getSiteUrl();
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(
+    "/auth/reset-password",
+  )}`;
 
   try {
     await resetUserPassword({
       email,
-      redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
+      redirectTo,
     });
   } catch (error) {
     // Ikke avslør om brukeren finnes – logg internt for feilsøking.
