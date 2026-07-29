@@ -49,6 +49,23 @@ export function AuthCallbackClient() {
         return;
       }
 
+        // Noen flows (inkl. recovery) kan returnere tokens i query-string,
+        // ikke bare i hash. Støtter begge for robusthet.
+        const accessTokenQ = searchParams.get("access_token");
+        const refreshTokenQ = searchParams.get("refresh_token");
+        if (accessTokenQ && refreshTokenQ) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessTokenQ,
+            refresh_token: refreshTokenQ,
+          });
+          if (sessionError) {
+            setError(sessionError.message);
+            return;
+          }
+          router.replace(next);
+          return;
+        }
+
       const hash = new URLSearchParams(
         window.location.hash.replace(/^#/, ""),
       );
