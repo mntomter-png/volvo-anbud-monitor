@@ -39,7 +39,7 @@ export async function POST(_request: NextRequest, context: RouteContext) {
   const siteUrl = getSiteUrl();
 
   try {
-    const { emailSent } = await resetUserPassword({
+    const { emailSent, actionLink } = await resetUserPassword({
       email: profile.email,
       redirectTo: `${siteUrl}/auth/callback?next=/auth/reset-password`,
     });
@@ -47,9 +47,10 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     return NextResponse.json({
       ok: true,
       emailSent,
+      actionLink,
       message: emailSent
         ? `Tilbakestillingslenke sendt til ${profile.email}.`
-        : `Kunne ikke sende e-post til ${profile.email}. Sjekk Resend-oppsett og prøv igjen.`,
+        : `Kunne ikke sende e-post til ${profile.email}. Kopier lenken manuelt.`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Ukjent feil";

@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import {
+  Check,
+  Copy,
   KeyRound,
   Loader2,
   MailPlus,
@@ -53,6 +55,11 @@ export function UsersAdminPanel() {
   const [role, setRole] = React.useState<UserRole>("user");
   const [inviting, setInviting] = React.useState(false);
   const [resettingUserId, setResettingUserId] = React.useState<string | null>(null);
+  const [resetLink, setResetLink] = React.useState<{
+    email: string;
+    url: string;
+  } | null>(null);
+  const [copied, setCopied] = React.useState(false);
 
   const fetchUsers = React.useCallback(async () => {
     setLoading(true);
@@ -140,6 +147,8 @@ export function UsersAdminPanel() {
     setResettingUserId(userId);
     setError(null);
     setBanner(null);
+    setResetLink(null);
+    setCopied(false);
 
     try {
       const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
@@ -148,15 +157,30 @@ export function UsersAdminPanel() {
       const json = (await res.json()) as {
         error?: string;
         message?: string;
+        actionLink?: string;
       };
       if (!res.ok) throw new Error(json.error ?? `Feil ${res.status}`);
       setBanner(json.message ?? "Tilbakestillingslenke sendt.");
+      if (json.actionLink) {
+        setResetLink({ email: userEmail, url: json.actionLink });
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Kunne ikke sende tilbakestillingslenke",
       );
     } finally {
       setResettingUserId(null);
+    }
+  }
+
+  async function handleCopyLink() {
+    if (!resetLink) return;
+    try {
+      await navigator.clipboard.writeText(resetLink.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Kunne ikke kopiere lenken. Marker og kopier manuelt.");
     }
   }
 
@@ -225,6 +249,41 @@ export function UsersAdminPanel() {
         <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {banner}
         </p>
+      )}
+      {resetLink && (
+        <div className="flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-medium text-blue-900">
+            Tilbakestillingslenke for {resetLink.email}
+          </p>
+          <p className="text-xs text-blue-800">
+            Del lenken manuelt i Teams/SMS hvis e-posten blir stoppet av filter.
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              readOnly
+              value={resetLink.url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="bg-white font-mono text-xs"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyLink}
+              className="shrink-0 gap-1.5"
+            >
+              {copied ? (
+                <>
+                  <Check className="size-4" /> Kopiert
+                </>
+              ) : (
+                <>
+                  <Copy className="size-4" /> Kopier
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
       )}
       {error && (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
