@@ -17,22 +17,49 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const OTP_TYPES = new Set([
+  "recovery",
+  "invite",
+  "signup",
+  "magiclink",
+  "email",
+]);
+
 /**
  * Håndterer retur fra Supabase (invitasjon, passordtilbakestilling, magic link).
- * Støtter både PKCE (?code=) og eldre hash-tokens (#access_token=).
+ * Støtter:
+ *  - token_hash + type (custom e-post via generateLink) → verifyOtp
+ *  - PKCE (?code=)
+ *  - access/refresh i query eller hash
+ *
+ * token_hash krever eksplisitt klikk først, så e-postskannere ikke forbruker engangslenken.
  */
 export function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = React.useState<string | null>(null);
+  const [pendingOtp, setPendingOtp] = React.useState<{
+    tokenHash: string;
+    type: string;
+    next: string;
+  } | null>(null);
+  const [verifying, setVerifying] = React.useState(false);
 
   React.useEffect(() => {
     const supabase = createClient();
     const next = safeNextPath(searchParams.get("next"));
-    const authError = searchParams.get("error_description") ?? searchParams.get("error");
+    const authError =
+      searchParams.get("error_description") ?? searchParams.get("error");
 
     if (authError) {
       setError(decodeURIComponent(authError.replace(/\+/g, " ")));
+      return;
+    }
+
+    const tokenHash = searchParams.get("token_hash");
+    const type = searchParams.get("type");
+    if (tokenHash && type && OTP_TYPES.has(type)) {
+      setPendingOtp({ tokenHash, type, next });
       return;
     }
 
@@ -49,26 +76,22 @@ export function AuthCallbackClient() {
         return;
       }
 
-        // Noen flows (inkl. recovery) kan returnere tokens i query-string,
-        // ikke bare i hash. Støtter begge for robusthet.
-        const accessTokenQ = searchParams.get("access_token");
-        const refreshTokenQ = searchParams.get("refresh_token");
-        if (accessTokenQ && refreshTokenQ) {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: accessTokenQ,
-            refresh_token: refreshTokenQ,
-          });
-          if (sessionError) {
-            setError(sessionError.message);
-            return;
-          }
-          router.replace(next);
+      const accessTokenQ = searchParams.get("access_token");
+      const refreshTokenQ = searchParams.get("refresh_token");
+      if (accessTokenQ && refreshTokenQ) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessTokenQ,
+          refresh_token: refreshTokenQ,
+        });
+        if (sessionError) {
+          setError(sessionError.message);
           return;
         }
+        router.replace(next);
+        return;
+      }
 
-      const hash = new URLSearchParams(
-        window.location.hash.replace(/^#/, ""),
-      );
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       if (accessToken && refreshToken) {
@@ -100,6 +123,38 @@ export function AuthCallbackClient() {
     void finish();
   }, [router, searchParams]);
 
+  async function handleConfirmOtp() {
+    if (!pendingOtp) return;
+    setVerifying(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.verifyOtp({
+      token_hash: pendingOtp.tokenHash,
+      type: pendingOtp.type as
+        | "recovery"
+        | "invite"
+        | "signup"
+        | "magiclink"
+        | "email",
+    });
+
+    setVerifying(false);
+
+    if (otpError) {
+      setError(
+        otpError.message.includes("expired") ||
+          otpError.message.includes("invalid")
+          ? "Lenken er ugyldig eller utløpt. Be om en ny tilbakestillingslenke."
+          : otpError.message,
+      );
+      setPendingOtp(null);
+      return;
+    }
+
+    router.replace(pendingOtp.next);
+  }
+
   if (error) {
     return (
       <AuthShell subtitle="Innlogging feilet">
@@ -114,6 +169,45 @@ export function AuthCallbackClient() {
             </Button>
             <Button asChild variant="outline">
               <Link href="/login">Tilbake til innlogging</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </AuthShell>
+    );
+  }
+
+  if (pendingOtp) {
+    const isRecovery = pendingOtp.type === "recovery";
+    return (
+      <AuthShell
+        subtitle={isRecovery ? "Tilbakestill passord" : "Aktiver konto"}
+      >
+        <Card className="w-full max-w-md border shadow-md">
+          <CardHeader>
+            <CardTitle>
+              {isRecovery ? "Bekreft tilbakestilling" : "Bekreft innlogging"}
+            </CardTitle>
+            <CardDescription>
+              Klikk knappen under for å fortsette. Dette hindrer at e-postfiltre
+              forbruker engangslenken automatisk.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Button
+              onClick={handleConfirmOtp}
+              disabled={verifying}
+              className="w-full"
+            >
+              {verifying ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : isRecovery ? (
+                "Fortsett til nytt passord"
+              ) : (
+                "Fortsett"
+              )}
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/login">Avbryt</Link>
             </Button>
           </CardContent>
         </Card>

@@ -1,17 +1,35 @@
 import { Resend } from "resend";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getSiteUrl } from "@/lib/auth/session";
 import { escapeHtmlAttr } from "@/lib/security/html";
 import { isSafeExternalUrl } from "@/lib/utils";
 
 export interface ResetUserPasswordOptions {
   email: string;
+  /** Brukes av Supabase generateLink; e-postlenken går til vår app med token_hash. */
   redirectTo: string;
 }
 
 export interface ResetUserPasswordResult {
   emailSent: boolean;
   actionLink: string;
+}
+
+/** Bygg lenke til vår app – verifyOtp skjer der (ikke via supabase.co/verify). */
+export function buildAuthTokenLink(options: {
+  tokenHash: string;
+  type: "recovery" | "invite" | "signup" | "magiclink" | "email";
+  next: string;
+  siteUrl?: string;
+}): string {
+  const siteUrl = (options.siteUrl ?? getSiteUrl()).replace(/\/$/, "");
+  const params = new URLSearchParams({
+    token_hash: options.tokenHash,
+    type: options.type,
+    next: options.next,
+  });
+  return `${siteUrl}/auth/callback?${params.toString()}`;
 }
 
 async function sendResetEmail(to: string, actionLink: string) {
@@ -62,10 +80,18 @@ export async function resetUserPassword(
     throw new Error(recovery.error.message);
   }
 
-  const actionLink = recovery.data.properties?.action_link;
-  if (!actionLink) {
-    throw new Error("Kunne ikke generere tilbakestillingslenke");
+  const hashedToken = recovery.data.properties?.hashed_token;
+  if (!hashedToken) {
+    throw new Error("Kunne ikke generere tilbakestillingslenke (mangler token)");
   }
+
+  // Bruk token_hash + verifyOtp i vår app – unngår at supabase.co/verify
+  // redirecter uten session (vanlig årsak til «lenken er ugyldig»).
+  const actionLink = buildAuthTokenLink({
+    tokenHash: hashedToken,
+    type: "recovery",
+    next: "/auth/reset-password",
+  });
 
   const emailSent = await sendResetEmail(options.email, actionLink);
   return { emailSent, actionLink };

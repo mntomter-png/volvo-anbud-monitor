@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 
+import { buildAuthTokenLink } from "@/lib/auth/reset-user-password";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { escapeHtmlAttr } from "@/lib/security/html";
 import { isSafeExternalUrl } from "@/lib/utils";
@@ -74,7 +75,16 @@ export async function inviteUser(
     userId = fallback.data.user?.id ?? null;
   } else {
     userId = invite.data.user?.id ?? null;
-    actionLink = invite.data.properties?.action_link ?? null;
+    const hashedToken = invite.data.properties?.hashed_token;
+    if (hashedToken) {
+      actionLink = buildAuthTokenLink({
+        tokenHash: hashedToken,
+        type: "invite",
+        next: "/auth/set-password",
+      });
+    } else {
+      actionLink = invite.data.properties?.action_link ?? null;
+    }
   }
 
   if (userId) {
